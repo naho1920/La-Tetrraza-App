@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Lista de acceso que gestiona la admin. Un alumno solo puede leer su
+    // propia entrada (para saber si ya fue aprobado); la admin gestiona todo.
+    match /approvedEmails/{email} {
+      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // El propio alumno crea su doc al primer login aprobado, siempre
+      // como "alumno" y ya aprobado — nunca puede auto-asignarse admin.
+      allow create: if isOwner(uid)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.rol == 'alumno'
+        && request.resource.data.aprobado == true
+        && exists(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email));
+
+      // El dueño edita su perfil pero nunca sus propios rol/aprobado.
+      allow update: if isAdmin()
+        || (isOwner(uid)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rol', 'aprobado', 'uid', 'email']));
+
+      allow delete: if isAdmin();
+
+      match /weightLogs/{logId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) || isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Todavía no hay más colecciones activas: se agregan rules por fase,
+    // junto con cada feature (ver roadmap-la-terraza.md).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
