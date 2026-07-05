@@ -26,4 +26,5 @@ export interface UserDoc {
   contactoEmergencia: string | null;
   fechaIngreso: unknown;
   fcmTokens: string[];
+  onboardingCompletado: boolean;
 }

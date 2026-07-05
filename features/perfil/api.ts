@@ -60,3 +60,9 @@ export async function getLatestWeightLog(uid: string): Promise<WeightLog | null>
   if (!first) return null;
   return { id: first.id, ...(first.data() as Omit<WeightLog, "id">) };
 }
+
+export async function getWeightLogs(uid: string): Promise<WeightLog[]> {
+  const q = query(collection(db, "users", uid, "weightLogs"), orderBy("fecha", "asc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<WeightLog, "id">) }));
+}

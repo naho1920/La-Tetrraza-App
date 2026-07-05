@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ export default function NuevoAlumnoPage() {
   const [approved, setApproved] = useState<ApprovedEmail[]>([]);
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
 
   async function loadData() {
     setLoading(true);
@@ -73,6 +75,12 @@ export default function NuevoAlumnoPage() {
   }
 
   const usersByEmail = new Map(users.map((u) => [u.email, u]));
+  const filtrados = approved.filter(({ email: approvedEmail }) => {
+    if (!busqueda.trim()) return true;
+    const activated = usersByEmail.get(approvedEmail);
+    const texto = `${activated?.nombre ?? ""} ${approvedEmail}`.toLowerCase();
+    return texto.includes(busqueda.trim().toLowerCase());
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
@@ -109,22 +117,24 @@ export default function NuevoAlumnoPage() {
         <CardHeader>
           <CardTitle>Alumnos con acceso ({approved.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-3">
+          <Input
+            placeholder="Buscar por nombre o correo…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
           {loading ? (
             <p className="text-sm text-muted-foreground">Cargando…</p>
-          ) : approved.length === 0 ? (
+          ) : filtrados.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Todavía no agregas a ningún alumno.
+              {approved.length === 0 ? "Todavía no agregas a ningún alumno." : "Sin resultados."}
             </p>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
-              {approved.map(({ email: approvedEmail }) => {
+              {filtrados.map(({ email: approvedEmail }) => {
                 const activated = usersByEmail.get(approvedEmail);
-                return (
-                  <li
-                    key={approvedEmail}
-                    className="flex items-center justify-between gap-3 py-2.5"
-                  >
+                const contenido = (
+                  <>
                     <span className="truncate text-sm">
                       {activated?.nombre ?? approvedEmail}
                       {activated && (
@@ -142,6 +152,20 @@ export default function NuevoAlumnoPage() {
                     >
                       {activated ? "Activo" : "Pendiente"}
                     </span>
+                  </>
+                );
+                return (
+                  <li key={approvedEmail}>
+                    {activated ? (
+                      <Link
+                        href={`/alumnos/${activated.uid}`}
+                        className="flex items-center justify-between gap-3 py-2.5 hover:text-primary"
+                      >
+                        {contenido}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3 py-2.5">{contenido}</div>
+                    )}
                   </li>
                 );
               })}

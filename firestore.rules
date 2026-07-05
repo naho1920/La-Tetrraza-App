@@ -15,6 +15,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
+    function isApproved() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.aprobado == true;
+    }
+
     // Lista de acceso que gestiona la admin. Un alumno solo puede leer su
     // propia entrada (para saber si ya fue aprobado); la admin gestiona todo.
     match /approvedEmails/{email} {
@@ -46,6 +51,116 @@ service cloud.firestore {
         allow create, update: if isOwner(uid) || isAdmin();
         allow delete: if isAdmin();
       }
+    }
+
+    // Fase 2 — horarios y reservas.
+    match /classTemplates/{id} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    match /classSessions/{id} {
+      allow read: if isApproved();
+      allow create, delete: if isAdmin();
+
+      // La admin edita lo que sea; un alumno aprobado solo puede mover
+      // `cuposOcupados` en 1 (reservar o cancelar su propio cupo) — nunca
+      // tocar capacidad, estado ni cualquier otro campo.
+      allow update: if isAdmin()
+        || (isApproved()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
+            && (request.resource.data.cuposOcupados == resource.data.cuposOcupados + 1
+                || request.resource.data.cuposOcupados == resource.data.cuposOcupados - 1));
+    }
+
+    match /bookings/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+
+      // El id compuesto "sessionId_uid" hace imposible duplicar la reserva;
+      // solo se puede crear como "reservado" y a nombre de uno mismo.
+      allow create: if isApproved()
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.sessionId + '_' + request.auth.uid
+        && request.resource.data.estado == 'reservado';
+
+      // El alumno solo puede cancelar su propia reserva (nunca tocar
+      // `asistio`, que es exclusivo de la admin).
+      allow update: if isAdmin()
+        || (isApproved()
+            && resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+            && request.resource.data.estado == 'cancelado');
+
+      allow delete: if isAdmin();
+    }
+
+    // Fase 3 — nutrición.
+    match /nutritionForms/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      allow create: if isApproved() && request.resource.data.uid == request.auth.uid;
+
+      // El alumno solo edita su propio formulario mientras la admin no lo
+      // haya empezado a revisar; una vez en revisión, solo la admin escribe.
+      allow update: if isAdmin()
+        || (isApproved()
+            && resource.data.uid == request.auth.uid
+            && resource.data.estado == 'pendiente'
+            && request.resource.data.uid == resource.data.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    match /nutritionPlans/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // Fase 4 — medallas.
+    match /skills/{id} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    match /achievements/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+
+      // La admin puede otorgar medallas directamente (ya validadas), por
+      // ejemplo las de Constancia que ya no calcula una Cloud Function.
+      allow create: if isAdmin()
+        || (isApproved()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.estado == 'pendiente');
+
+      // Mientras sigue pendiente, el dueño puede corregir nivel/fecha/video;
+      // en cualquier estado puede marcar que ya vio la celebración. Todo lo
+      // demás (validar, rechazar, pin entregado) es exclusivo de la admin.
+      allow update: if isAdmin()
+        || (isApproved()
+            && resource.data.uid == request.auth.uid
+            && (
+              (resource.data.estado == 'pendiente'
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nivel', 'fechaLogro', 'videoPath']))
+              || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['celebrado'])
+                  && request.resource.data.celebrado == true)
+            ));
+
+      allow delete: if isAdmin();
+    }
+
+    // Fase 5 — membresías. Sin pagos in-app: la admin gestiona todo a mano.
+    match /membershipPlans/{id} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    match /memberships/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /payments/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      allow write: if isAdmin();
     }
 
     // Todavía no hay más colecciones activas: se agregan rules por fase,

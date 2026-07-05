@@ -40,8 +40,13 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
     contactoEmergencia: null,
     fechaIngreso: serverTimestamp(),
     fcmTokens: [],
+    onboardingCompletado: false,
   };
 
   await setDoc(userRef, newUserDoc);
   return newUserDoc as UserDoc;
+}
+
+export async function markOnboardingCompleted(uid: string) {
+  await setDoc(doc(db, "users", uid), { onboardingCompletado: true }, { merge: true });
 }

@@ -1,1 +1,116 @@
-export {};
+import {
+  addDoc,
+  collection,
+  getDocs,
+  doc,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+
+import { auth, db } from "@/lib/firebase/client";
+import type { EstadoNutricion, NutritionForm, NutritionPlan } from "./types";
+
+async function authHeader(): Promise<HeadersInit> {
+  const token = await auth.currentUser?.getIdToken();
+  return { Authorization: `Bearer ${token ?? ""}` };
+}
+
+export async function getFormForUser(uid: string): Promise<NutritionForm | null> {
+  const q = query(
+    collection(db, "nutritionForms"),
+    where("uid", "==", uid),
+    orderBy("version", "desc"),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  const first = snap.docs[0];
+  return first ? ({ id: first.id, ...(first.data() as Omit<NutritionForm, "id">) }) : null;
+}
+
+/** Devuelve el borrador activo (no enviado) del alumno, o crea uno nuevo. */
+export async function getOrCreateDraftForm(
+  uid: string,
+  prellenado: Record<string, string>
+): Promise<NutritionForm> {
+  const ultimo = await getFormForUser(uid);
+  if (ultimo && !ultimo.enviado) return ultimo;
+
+  const nuevo = {
+    uid,
+    respuestas: prellenado,
+    version: (ultimo?.version ?? 0) + 1,
+    enviado: false,
+    estado: "pendiente" as EstadoNutricion,
+    createdAt: serverTimestamp(),
+  };
+  const ref = await addDoc(collection(db, "nutritionForms"), nuevo);
+  return { id: ref.id, ...nuevo, createdAt: { toDate: () => new Date() } };
+}
+
+export async function saveFormDraft(formId: string, respuestas: Record<string, string>) {
+  await updateDoc(doc(db, "nutritionForms", formId), { respuestas });
+}
+
+export async function submitForm(formId: string) {
+  await updateDoc(doc(db, "nutritionForms", formId), { enviado: true });
+}
+
+// ---------- Admin ----------
+
+export async function listFormsByEstado(estado: EstadoNutricion): Promise<NutritionForm[]> {
+  const q = query(
+    collection(db, "nutritionForms"),
+    where("estado", "==", estado),
+    where("enviado", "==", true),
+    orderBy("createdAt", "asc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NutritionForm, "id">) }));
+}
+
+export async function marcarEnRevision(form: NutritionForm) {
+  if (form.estado !== "pendiente") return;
+  await updateDoc(doc(db, "nutritionForms", form.id), { estado: "en_revision" });
+}
+
+export async function getPlanesForUser(uid: string): Promise<NutritionPlan[]> {
+  const q = query(
+    collection(db, "nutritionPlans"),
+    where("uid", "==", uid),
+    orderBy("enviadoAt", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NutritionPlan, "id">) }));
+}
+
+// ---------- Subida / descarga de PDF (vía Supabase Storage, server-side) ----------
+
+export async function subirPlan(uid: string, formId: string, notas: string, archivo: File) {
+  const body = new FormData();
+  body.set("uid", uid);
+  body.set("formId", formId);
+  body.set("notas", notas);
+  body.set("archivo", archivo);
+
+  const res = await fetch("/api/nutricion/subir-plan", {
+    method: "POST",
+    headers: await authHeader(),
+    body,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "No se pudo subir el plan.");
+  return data as { ok: true; planId: string };
+}
+
+export async function obtenerUrlPlan(archivoPath: string): Promise<string> {
+  const res = await fetch(`/api/nutricion/ver-plan?path=${encodeURIComponent(archivoPath)}`, {
+    headers: await authHeader(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "No se pudo abrir el plan.");
+  return data.url as string;
+}

@@ -5,14 +5,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addWeightLog } from "./api";
+import { addWeightLog, type WeightLog } from "./api";
 
 export function WeightLogForm({
   uid,
   ultimoPeso,
+  onSaved,
 }: {
   uid: string;
   ultimoPeso: number | null;
+  onSaved?: (log: WeightLog) => void;
 }) {
   const [peso, setPeso] = useState("");
   const [saving, setSaving] = useState(false);
@@ -27,6 +29,7 @@ export function WeightLogForm({
       await addWeightLog(uid, valor);
       setSavedPeso(valor);
       setPeso("");
+      onSaved?.({ id: crypto.randomUUID(), pesoKg: valor, fecha: { toDate: () => new Date() } });
     } finally {
       setSaving(false);
     }

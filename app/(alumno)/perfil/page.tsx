@@ -7,18 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
-import { getLatestWeightLog } from "@/features/perfil/api";
+import { getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { ProfileForm } from "@/features/perfil/profile-form";
+import { WeightChart } from "@/features/perfil/weight-chart";
 import { WeightLogForm } from "@/features/perfil/weight-log-form";
 
 export default function PerfilPage() {
   const { user, userDoc, refreshUserDoc } = useAuth();
-  const [ultimoPeso, setUltimoPeso] = useState<number | null>(null);
+  const [pesoLogs, setPesoLogs] = useState<WeightLog[]>([]);
 
   useEffect(() => {
     if (!userDoc) return;
-    getLatestWeightLog(userDoc.uid).then((log) => setUltimoPeso(log?.pesoKg ?? null));
+    getWeightLogs(userDoc.uid).then(setPesoLogs);
   }, [userDoc]);
+
+  const ultimoPeso = pesoLogs.at(-1)?.pesoKg ?? null;
+
+  function handlePesoGuardado(nuevoLog: WeightLog) {
+    setPesoLogs((prev) => [...prev, nuevoLog]);
+  }
 
   if (!userDoc) return null;
 
@@ -44,8 +51,9 @@ export default function PerfilPage() {
         <CardHeader>
           <CardTitle>Tu peso</CardTitle>
         </CardHeader>
-        <CardContent>
-          <WeightLogForm uid={userDoc.uid} ultimoPeso={ultimoPeso} />
+        <CardContent className="flex flex-col gap-4">
+          <WeightChart logs={pesoLogs} />
+          <WeightLogForm uid={userDoc.uid} ultimoPeso={ultimoPeso} onSaved={handlePesoGuardado} />
         </CardContent>
       </Card>
 
