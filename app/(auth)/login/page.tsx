@@ -69,6 +69,7 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
     } catch (err) {
+      console.error("Google sign-in error:", err);
       setError(authErrorMessage(err));
     } finally {
       setLoading(false);
