@@ -148,10 +148,12 @@ la-terraza/
 
 | Token | Hex | Uso |
 |---|---|---|
-| `--primary` | `#8B5CF6` (lila 500) | Botones principales, links, elementos activos |
-| `--primary-dark` | `#6D28D9` (lila 700) | Hover, headers, énfasis |
-| `--primary-light` | `#C4B5FD` (lila 300) | Fondos suaves, badges, estados seleccionados |
-| `--primary-subtle` | `#F5F3FF` (lila 50) | Fondos de sección, cards destacadas |
+| `--primary` | `#6934E1` (morado de marca) | Detalles: iconos, links, estados activos, indicadores — **no botones** |
+| `--primary-dark` | `#4E1FB5` | Hover, énfasis |
+| `--primary-light` | `#A186EE` | Acentos sobre cards oscuras, badges |
+| `--primary-subtle` | `#F1EBFD` | Fondos suaves, chips seleccionados |
+| `--foreground` (botones) | `#17141F` (negro) | Botones principales (píldora negra, texto blanco) |
+| `--card-dark` | `#17141F` | Cards "hero" oscuras (dashboard, generar clases, resumen de medallas) |
 | `--accent-gold` | `#F59E0B` | Medallas de oro, celebraciones |
 | `--success` | `#10B981` | Asistencia confirmada, medalla validada |
 | `--warning` | `#F59E0B` | Membresía por vencer |
@@ -187,7 +189,7 @@ Button · Card · Input, Select, Textarea, Checkbox, RadioGroup · Form (con val
 ### 6.6 Navegación
 
 - **Alumno (móvil primero):** tab bar inferior — Horarios · Nutrición · Medallas · Membresía · Perfil.
-- **Admin:** en móvil, tab bar (Dashboard · Alumnos · Clases · Nutrición · Medallas); en escritorio, sidebar.
+- **Admin:** tab bar inferior tipo app en todos los tamaños (Inicio · Clases · Alumnos · Nutrición · Medallas); Membresías y Estadísticas se acceden desde el dashboard. Contenido centrado a `max-w-lg`.
 
 ---
 
@@ -374,18 +376,23 @@ Insignias únicas con nombre (estilo scout puro):
 
 **Estadísticas:** asistencia por horario (clases llenas/vacías), evolución de alumnos, medallas por mes.
 
-### 7.8 Notificaciones push (FCM, Fase 6)
+### 7.8 Notificaciones — bandeja en la app (v2) y push (FCM, Fase 6)
 
-| Evento | Destinatario | Mensaje |
+**Bandeja en la app (implementada, sin FCM):** cada rol tiene su propia pantalla `/notificaciones` (alumno) y `/notificaciones-admin` (coach), con campanita y contador en el header. Se calculan al vuelo desde Firestore (sin colección propia de notificaciones) en `features/notificaciones/api.ts`:
+
+| Evento | Para quién | Se ve como |
 |---|---|---|
-| Recordatorio de clase (1 h antes) | Alumno inscrito | "Tu clase de 19:00 empieza en 1 hora 💪" |
+| Alguien sin acceso inicia sesión | Admin | "[nombre] quiere unirse a La Terraza" → lleva a Alumnos a darle acceso |
+| Alumno registra un logro | Admin | "[nombre] registró un logro" → lleva a validar |
+| Medalla validada, pin pendiente | Admin | "Entregar pin a [nombre]" |
+| Formulario de nutrición nuevo/en revisión | Admin | "[nombre] espera su plan de nutrición" |
+| Membresía por vencer o vencida | Admin | "La membresía de [nombre] está por vencer/venció" |
+| Medalla validada o rechazada | Alumno | "¡Medalla [nombre] desbloqueada! 🎉" / "no fue validada" |
 | Plan alimenticio enviado | Alumno | "¡Tu plan alimenticio está listo! 🥗" |
-| Medalla validada | Alumno | "¡Medalla [nombre] desbloqueada! Pasa por tu pin 🏅" |
-| Medalla automática (pilar Constancia) | Alumno | "¡Sorpresa! Ganaste [Mes Perfecto] 💜" |
-| Membresía por vencer | Alumno | "Tu membresía vence en 3 días" |
-| Nuevo formulario de nutrición | Admin | "Nuevo formulario de [nombre]" |
-| Medalla por validar | Admin | "[nombre] registró un logro" |
-| Clase cancelada | Inscritos | "La clase de [hora] fue cancelada" |
+| Membresía por vencer o vencida | Alumno | "Tu membresía está por vencer / venció" |
+| Clase reservada cancelada | Alumno | "La clase de las [hora] fue cancelada" |
+
+**Push (FCM, Fase 6 — pendiente):** los mismos eventos, entregados como notificación del sistema aunque la app esté cerrada. Requiere permiso del navegador, `fcmTokens[]` en `users/{uid}` y Cloud Functions que disparen el envío; la bandeja en la app seguirá existiendo como historial.
 
 ### 7.9 Futuro (v2 — la arquitectura ya lo contempla)
 
@@ -406,6 +413,10 @@ users/{uid}
   └─ weightLogs/{id}: pesoKg · fecha        (subcolección)
 
 approvedEmails/{email}          ← lista de acceso que gestiona la admin
+accessRequests/{uid}  email · nombre · foto · estado: pendiente|aprobada|rechazada
+                      solicitadoAt — se crea sola cuando alguien sin acceso
+                      inicia sesión; alimenta la bandeja de notificaciones
+                      de la admin ("X quiere unirse")
 
 classTemplates/{id}   diaSemana · hora · nombre · capacidad · activa
 classSessions/{id}    fecha · hora · nombre · capacidad · cuposOcupados · estado
@@ -449,7 +460,7 @@ personalRecords/{id}  uid · movimiento · valor · unidad · fecha    (v2)
 
 ## 9. Requisitos PWA
 
-- `manifest.json`: nombre "La Terraza", `theme_color: #8B5CF6`, `background_color: #F5F3FF`, iconos 192/512 + maskable, `display: standalone`.
+- `manifest.json`: nombre "La Terraza", `theme_color: #6934E1`, `background_color: #F4F4F6`, iconos 192/512 + maskable, `display: standalone`.
 - **Service worker** (Serwist): cache del shell y assets; lectura offline de horarios reservados, perfil y vitrina de medallas (las acciones requieren conexión, con aviso claro). El mismo service worker recibe los push de FCM.
 - Prompt de instalación amigable con instrucciones específicas para iOS (Safari → Compartir → Agregar a inicio).
 - Lighthouse PWA ≥ 90; probado en iOS Safari, Android Chrome y escritorio.

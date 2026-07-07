@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 
+import { AdminTabBar } from "@/components/ui/admin-tab-bar";
 import { RequireAdmin } from "@/features/auth/guards";
-import { AdminNav } from "@/components/ui/admin-nav";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <RequireAdmin>
       <div className="flex min-h-full flex-1 flex-col">
-        <AdminNav />
-        <main className="flex flex-1 flex-col">{children}</main>
+        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col">{children}</main>
+        <AdminTabBar />
       </div>
     </RequireAdmin>
   );

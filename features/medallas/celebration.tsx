@@ -29,7 +29,7 @@ export function AchievementCelebration({
     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
   }, []);
 
-  const color = PILARES.find((p) => p.pilar === skill.pilar)?.color ?? "#8B5CF6";
+  const color = PILARES.find((p) => p.pilar === skill.pilar)?.color ?? "#6934E1";
   const nombre =
     achievement.nivel === "base" ? skill.nombreMedalla : `${skill.nombreMedalla} — ${achievement.nivel}`;
 

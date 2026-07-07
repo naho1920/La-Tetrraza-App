@@ -1,7 +1,7 @@
 import type { Pilar, Skill } from "./types";
 
 export const PILARES: { pilar: Pilar; label: string; color: string }[] = [
-  { pilar: "fuerza", label: "Fuerza", color: "#8B5CF6" },
+  { pilar: "fuerza", label: "Fuerza", color: "#6934E1" },
   { pilar: "gimnasia", label: "Gimnasia y Acrobacias", color: "#F59E0B" },
   { pilar: "resistencia", label: "Resistencia", color: "#10B981" },
   { pilar: "constancia", label: "Constancia La Terraza", color: "#EC4899" },

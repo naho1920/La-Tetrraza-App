@@ -49,9 +49,14 @@ export async function obtenerUrlVideo(videoPath: string): Promise<string> {
 }
 
 export async function listSkills(): Promise<Skill[]> {
-  const q = query(collection(db, "skills"), where("activa", "==", true), orderBy("orden"));
+  // Se ordena en el cliente: where("activa") + orderBy("orden") exigiría un
+  // índice compuesto en Firestore y, si falta, la consulta falla en silencio
+  // y la vitrina se queda vacía.
+  const q = query(collection(db, "skills"), where("activa", "==", true));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Skill, "id">) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Skill, "id">) }))
+    .sort((a, b) => a.orden - b.orden);
 }
 
 export async function listAllSkillsAdmin(): Promise<Skill[]> {

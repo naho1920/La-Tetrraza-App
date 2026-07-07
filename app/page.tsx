@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { AdminNav } from "@/components/ui/admin-nav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminTabBar } from "@/components/ui/admin-tab-bar";
 import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
 import { getSkill, getUncelebratedValidated, marcarCelebrado } from "@/features/medallas/api";
 import { AchievementCelebration } from "@/features/medallas/celebration";
 import type { Achievement, Skill } from "@/features/medallas/types";
+import { NotificationsBell } from "@/features/notificaciones/bell";
 import { getUpcomingBookingsForUser } from "@/features/reservas/api";
 import { toISODate } from "@/features/reservas/date-utils";
 import type { Booking, ClassSession } from "@/features/reservas/types";
@@ -74,53 +74,62 @@ export default function Home() {
   if (userDoc?.rol === "admin") {
     return (
       <div className="flex min-h-full flex-1 flex-col">
-        <AdminNav />
-        <AdminDashboard nombre={userDoc.nombre} />
+        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+          <AdminDashboard nombre={userDoc.nombre} foto={userDoc.foto} />
+        </main>
+        <AdminTabBar />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <div className="flex flex-col items-center gap-4 bg-primary-subtle px-6 py-10 text-center dark:bg-background">
-        <Image
-          src="/icon-512.png"
-          alt="La Terraza"
-          width={64}
-          height={64}
-          className="rounded-2xl shadow-lg"
-          priority
-        />
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-primary-dark dark:text-primary-light">
-          Hola, {userDoc?.nombre.split(" ")[0]} 👋
-        </h1>
-      </div>
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+        <header className="flex items-center justify-between gap-3 py-2">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/icon-512.png"
+              alt="La Terraza"
+              width={44}
+              height={44}
+              className="rounded-full shadow-sm"
+              priority
+            />
+            <div>
+              <p className="text-xs text-muted-foreground">La Terraza</p>
+              <h1 className="font-heading text-lg leading-tight font-semibold">
+                Hola, {userDoc?.nombre.split(" ")[0]} 👋
+              </h1>
+            </div>
+          </div>
+          <NotificationsBell />
+        </header>
 
-      <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Tus próximas clases</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {proximas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Todavía no tienes clases reservadas.
-              </p>
-            ) : (
-              proximas.map(({ booking, session }) => (
-                <div key={booking.id} className="flex items-center gap-2 text-sm">
-                  <CalendarDays className="size-4 shrink-0 text-primary" />
+        <section className="flex flex-col gap-3 rounded-3xl bg-card-dark p-5 text-card-dark-foreground">
+          <h2 className="font-heading text-base font-semibold">Tus próximas clases</h2>
+          {proximas.length === 0 ? (
+            <p className="text-sm text-card-dark-foreground/60">
+              Todavía no tienes clases reservadas.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-white/10">
+              {proximas.map(({ booking, session }) => (
+                <li key={booking.id} className="flex items-center gap-2.5 py-2.5 text-sm">
+                  <CalendarDays className="size-4 shrink-0 text-primary-light" />
                   <span>
                     {session.fecha} · {session.hora} — {session.nombre}
                   </span>
-                </div>
-              ))
-            )}
-            <Button render={<Link href="/horarios" />} variant="outline" className="mt-2">
-              Ver horarios
-            </Button>
-          </CardContent>
-        </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button
+            render={<Link href="/horarios" />}
+            className="bg-white text-neutral-900 hover:bg-white/90"
+          >
+            Ver calendario de clases
+          </Button>
+        </section>
 
         <Button variant="ghost" onClick={() => signOutUser()}>
           Cerrar sesión ({user?.email})

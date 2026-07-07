@@ -32,4 +32,9 @@ export interface Booking {
   // de Fase 5 no los tienen.
   fecha?: string;
   hora?: string;
+  // Denormalizados desde el perfil al reservar, para que cualquier alumno
+  // pueda ver quiénes van a una clase sin leer users/ (que las rules
+  // restringen al dueño y la admin). Las reservas antiguas no los tienen.
+  alumnoNombre?: string | null;
+  alumnoFoto?: string | null;
 }

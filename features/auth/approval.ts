@@ -50,3 +50,36 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
 export async function markOnboardingCompleted(uid: string) {
   await setDoc(doc(db, "users", uid), { onboardingCompletado: true }, { merge: true });
 }
+
+export interface AccessRequest {
+  uid: string;
+  email: string;
+  nombre: string;
+  foto: string | null;
+  estado: "pendiente" | "aprobada" | "rechazada";
+  solicitadoAt: { toDate: () => Date } | null;
+}
+
+/**
+ * Deja registrada la solicitud de acceso de un usuario no aprobado, para que
+ * la coach la vea en su panel y le dé acceso con un tap. Si ya existe una
+ * solicitud, no la pisa (conserva su estado y fecha).
+ */
+export async function ensureAccessRequest(user: User): Promise<AccessRequest | null> {
+  const email = (user.email ?? "").toLowerCase();
+  if (!email) return null;
+
+  const ref = doc(db, "accessRequests", user.uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return snap.data() as AccessRequest;
+
+  const request: Omit<AccessRequest, "solicitadoAt"> = {
+    uid: user.uid,
+    email,
+    nombre: user.displayName ?? email,
+    foto: user.photoURL ?? null,
+    estado: "pendiente",
+  };
+  await setDoc(ref, { ...request, solicitadoAt: serverTimestamp() });
+  return { ...request, solicitadoAt: null };
+}

@@ -48,6 +48,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-dark: var(--card-dark);
+  --color-card-dark-foreground: var(--card-dark-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -58,24 +60,27 @@
 }
 
 :root {
-  /* Tokens Terraza UI — PRD §6.2 */
-  --background: #FFFFFF;
-  --foreground: #1E1B2E;
+  /* Tokens Terraza UI v2 — morado #6934E1 en detalles, botones negros,
+     fondo gris suave con cards blancas y cards oscuras tipo "hero". */
+  --background: #F4F4F6;
+  --foreground: #17141F;
   --card: #FFFFFF;
-  --card-foreground: #1E1B2E;
+  --card-foreground: #17141F;
+  --card-dark: #17141F;
+  --card-dark-foreground: #FAFAFA;
   --popover: #FFFFFF;
-  --popover-foreground: #1E1B2E;
-  --primary: #8B5CF6; /* lila 500 */
+  --popover-foreground: #17141F;
+  --primary: #6934E1; /* morado de marca — detalles, iconos, estados activos */
   --primary-foreground: #FFFFFF;
-  --primary-dark: #6D28D9; /* lila 700 */
-  --primary-light: #C4B5FD; /* lila 300 */
-  --primary-subtle: #F5F3FF; /* lila 50 */
-  --secondary: #F5F3FF;
-  --secondary-foreground: #6D28D9;
-  --muted: #F5F3FF;
-  --muted-foreground: #8E8AA0;
-  --accent: #C4B5FD;
-  --accent-foreground: #1E1B2E;
+  --primary-dark: #4E1FB5;
+  --primary-light: #A186EE;
+  --primary-subtle: #F1EBFD;
+  --secondary: #ECEBF1;
+  --secondary-foreground: #17141F;
+  --muted: #EFEEF3;
+  --muted-foreground: #726E85;
+  --accent: #E7DFFB;
+  --accent-foreground: #4E1FB5;
   --accent-gold: #F59E0B;
   --success: #10B981;
   --success-foreground: #FFFFFF;
@@ -83,23 +88,23 @@
   --warning-foreground: #1E1B2E;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E9E5F5;
-  --input: #E9E5F5;
-  --ring: #8B5CF6;
-  --chart-1: #8B5CF6;
+  --border: #E6E5EC;
+  --input: #E6E5EC;
+  --ring: #6934E1;
+  --chart-1: #6934E1;
   --chart-2: #F59E0B;
   --chart-3: #10B981;
-  --chart-4: #6D28D9;
-  --chart-5: #C4B5FD;
-  --radius: 0.75rem;
-  --sidebar: #F5F3FF;
-  --sidebar-foreground: #1E1B2E;
-  --sidebar-primary: #8B5CF6;
+  --chart-4: #4E1FB5;
+  --chart-5: #A186EE;
+  --radius: 1rem;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #17141F;
+  --sidebar-primary: #6934E1;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #C4B5FD;
-  --sidebar-accent-foreground: #1E1B2E;
-  --sidebar-border: #E9E5F5;
-  --sidebar-ring: #8B5CF6;
+  --sidebar-accent: #E7DFFB;
+  --sidebar-accent-foreground: #17141F;
+  --sidebar-border: #E6E5EC;
+  --sidebar-ring: #6934E1;
 }
 
 .dark {
@@ -108,18 +113,20 @@
   --foreground: #F5F3FF;
   --card: #1A1428;
   --card-foreground: #F5F3FF;
+  --card-dark: #1A1428;
+  --card-dark-foreground: #F5F3FF;
   --popover: #1A1428;
   --popover-foreground: #F5F3FF;
-  --primary: #A78BFA; /* lila 400, más claro para contraste sobre fondo oscuro */
+  --primary: #A186EE; /* morado más claro para contraste sobre fondo oscuro */
   --primary-foreground: #1E1B2E;
-  --primary-dark: #C4B5FD;
-  --primary-light: #6D28D9;
-  --primary-subtle: #241B38;
+  --primary-dark: #C3B0F6;
+  --primary-light: #4E1FB5;
+  --primary-subtle: #221A36;
   --secondary: #241B38;
-  --secondary-foreground: #C4B5FD;
+  --secondary-foreground: #C3B0F6;
   --muted: #241B38;
   --muted-foreground: #A79FC2;
-  --accent: #6D28D9;
+  --accent: #4E1FB5;
   --accent-foreground: #F5F3FF;
   --accent-gold: #FBBF24;
   --success: #34D399;
@@ -130,20 +137,20 @@
   --destructive-foreground: #0F0B1A;
   --border: rgba(245, 243, 255, 0.12);
   --input: rgba(245, 243, 255, 0.16);
-  --ring: #A78BFA;
-  --chart-1: #A78BFA;
+  --ring: #A186EE;
+  --chart-1: #A186EE;
   --chart-2: #FBBF24;
   --chart-3: #34D399;
-  --chart-4: #C4B5FD;
-  --chart-5: #6D28D9;
+  --chart-4: #C3B0F6;
+  --chart-5: #4E1FB5;
   --sidebar: #1A1428;
   --sidebar-foreground: #F5F3FF;
-  --sidebar-primary: #A78BFA;
+  --sidebar-primary: #A186EE;
   --sidebar-primary-foreground: #1E1B2E;
-  --sidebar-accent: #6D28D9;
+  --sidebar-accent: #4E1FB5;
   --sidebar-accent-foreground: #F5F3FF;
   --sidebar-border: rgba(245, 243, 255, 0.12);
-  --sidebar-ring: #A78BFA;
+  --sidebar-ring: #A186EE;
 }
 
 @layer base {

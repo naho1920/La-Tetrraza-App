@@ -28,6 +28,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Solicitudes de acceso: cuando alguien entra con Google y no está
+    // aprobado, deja registrada su solicitud para que la admin la vea y
+    // decida. El propio usuario (aún sin aprobar) crea la suya.
+    match /accessRequests/{uid} {
+      allow get: if isAdmin() || isOwner(uid);
+      allow list: if isAdmin();
+      allow create: if isOwner(uid)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.estado == 'pendiente';
+      allow update, delete: if isAdmin();
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
 
@@ -74,7 +86,10 @@ service cloud.firestore {
     }
 
     match /bookings/{id} {
-      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      // Cualquier alumno aprobado puede ver las reservas: la app muestra
+      // quiénes van a cada clase (el nombre viaja denormalizado en la
+      // propia reserva, así que users/ sigue siendo privado).
+      allow read: if isAdmin() || isApproved();
 
       // El id compuesto "sessionId_uid" hace imposible duplicar la reserva;
       // solo se puede crear como "reservado" y a nombre de uno mismo.
