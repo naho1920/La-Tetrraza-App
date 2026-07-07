@@ -55,8 +55,15 @@ export function ClaimAchievementDialog({
   const [seleccion, setSeleccion] = useState("");
   const [fecha, setFecha] = useState(toISODate(new Date()));
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [pesoLevantado, setPesoLevantado] = useState("");
+  const [tiempoLogrado, setTiempoLogrado] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [skillIdSeleccionado] = seleccion.split(":");
+  const skillSeleccionado = skills.find((s) => s.id === skillIdSeleccionado) ?? null;
+  const pideKg = skillSeleccionado?.pilar === "fuerza" && skillSeleccionado.relativoABW;
+  const pideTiempo = skillSeleccionado?.pilar === "resistencia";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +73,15 @@ export function ClaimAchievementDialog({
     setEnviando(true);
     try {
       const videoPath = archivo ? await subirVideo(uid, archivo) : null;
-      await claimAchievement(uid, skillId, nivel, fecha, videoPath);
+      await claimAchievement(
+        uid,
+        skillId,
+        nivel,
+        fecha,
+        videoPath,
+        pideKg && pesoLevantado ? Number(pesoLevantado) : null,
+        pideTiempo && tiempoLogrado ? tiempoLogrado : null
+      );
       onClaimed();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo registrar el logro.");
@@ -98,6 +113,36 @@ export function ClaimAchievementDialog({
             </Select>
           </div>
 
+          {pideKg && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="peso-logro">¿Cuánto alzaste? (kg)</Label>
+              <Input
+                id="peso-logro"
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0"
+                placeholder="Ej. 97.5"
+                value={pesoLevantado}
+                onChange={(e) => setPesoLevantado(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          {pideTiempo && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tiempo-logro">¿En qué tiempo lo lograste?</Label>
+              <Input
+                id="tiempo-logro"
+                type="text"
+                placeholder="Ej. 7:45"
+                value={tiempoLogrado}
+                onChange={(e) => setTiempoLogrado(e.target.value)}
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="fecha-logro">Fecha</Label>
             <Input
@@ -122,7 +167,11 @@ export function ClaimAchievementDialog({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="h-11 text-base" disabled={enviando || !seleccion}>
+          <Button
+            type="submit"
+            className="h-11 text-base"
+            disabled={enviando || !seleccion || (pideKg && !pesoLevantado)}
+          >
             {enviando ? "Enviando…" : "Registrar logro"}
           </Button>
         </form>

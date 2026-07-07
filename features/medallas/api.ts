@@ -83,7 +83,9 @@ export async function claimAchievement(
   skillId: string,
   nivel: string,
   fechaLogro: string,
-  videoPath: string | null
+  videoPath: string | null,
+  pesoLevantadoKg: number | null = null,
+  tiempoLogrado: string | null = null
 ) {
   await addDoc(collection(db, "achievements"), {
     uid,
@@ -91,6 +93,8 @@ export async function claimAchievement(
     nivel,
     fechaLogro,
     videoPath,
+    pesoLevantadoKg,
+    tiempoLogrado,
     estado: "pendiente" as EstadoAchievement,
     pinEntregado: false,
     celebrado: false,
@@ -169,6 +173,8 @@ export async function otorgarMedallaManual(
     nivel,
     fechaLogro: new Date().toISOString().slice(0, 10),
     videoPath: null,
+    pesoLevantadoKg: null,
+    tiempoLogrado: null,
     estado: "validado",
     pinEntregado: false,
     celebrado: false,

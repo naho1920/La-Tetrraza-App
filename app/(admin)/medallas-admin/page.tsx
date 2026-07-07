@@ -228,6 +228,8 @@ export default function AdminMedallasPage() {
                       <p className="text-sm font-medium">{nombres[a.uid] ?? "…"}</p>
                       <p className="text-sm text-muted-foreground">
                         {tituloMedalla(skills[a.skillId], a.nivel)}
+                        {a.pesoLevantadoKg != null && ` — ${a.pesoLevantadoKg} kg`}
+                        {a.tiempoLogrado && ` — ${a.tiempoLogrado}`}
                       </p>
                     </div>
                     <Badge>{a.fechaLogro}</Badge>

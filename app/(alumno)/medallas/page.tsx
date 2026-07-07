@@ -168,6 +168,14 @@ export default function MedallasPage() {
                 Aún está bloqueada. Cuando lo consigas, regístralo y tu coach lo validará 💪
               </p>
             )}
+            {(seleccion.achievement?.pesoLevantadoKg != null || seleccion.achievement?.tiempoLogrado) && (
+              <p className="text-sm text-muted-foreground">
+                Registraste:{" "}
+                {seleccion.achievement.pesoLevantadoKg != null &&
+                  `${seleccion.achievement.pesoLevantadoKg} kg`}
+                {seleccion.achievement.tiempoLogrado && ` ${seleccion.achievement.tiempoLogrado}`}
+              </p>
+            )}
             {seleccion.achievement?.estado === "pendiente" && (
               <p className="text-sm text-warning">Tu coach todavía está validando este logro.</p>
             )}

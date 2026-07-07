@@ -26,6 +26,10 @@ export interface Achievement {
   nivel: string;
   fechaLogro: string; // "YYYY-MM-DD"
   videoPath: string | null;
+  /** Kg levantados, solo para medallas de Fuerza (relativoABW). */
+  pesoLevantadoKg: number | null;
+  /** Tiempo logrado en formato libre ("7:45"), solo para WODs de Resistencia. */
+  tiempoLogrado: string | null;
   estado: EstadoAchievement;
   pinEntregado: boolean;
   celebrado: boolean;
