@@ -220,17 +220,15 @@ function OneOffSessionCard() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+          {/* Fecha ocupa toda la fila: los selectores nativos de fecha
+              necesitan más ancho del que cabe compartiendo columna. */}
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="fecha-sesion">Fecha</Label>
             <Input id="fecha-sesion" type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="hora-sesion">Hora</Label>
             <Input id="hora-sesion" type="time" required value={hora} onChange={(e) => setHora(e.target.value)} />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="nombre-sesion">Nombre de la clase</Label>
-            <Input id="nombre-sesion" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="capacidad-sesion">Capacidad</Label>
@@ -242,6 +240,10 @@ function OneOffSessionCard() {
               value={capacidad}
               onChange={(e) => setCapacidad(e.target.value)}
             />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label htmlFor="nombre-sesion">Nombre de la clase</Label>
+            <Input id="nombre-sesion" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
           </div>
           <Button type="submit" className="col-span-2 self-end" disabled={saving}>
             {saving ? "Creando…" : "Crear clase especial"}

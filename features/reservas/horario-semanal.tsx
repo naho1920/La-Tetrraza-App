@@ -114,7 +114,9 @@ function TemplateDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+          {/* Día ocupa toda la fila: los nombres largos ("Miércoles") necesitan
+              más ancho del que cabe compartiendo columna con la hora. */}
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Día</Label>
             <Select value={diaSemana} onValueChange={(v) => setDiaSemana(v ?? "1")}>
               <SelectTrigger className="w-full">
@@ -140,16 +142,6 @@ function TemplateDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nombre-clase">Nombre</Label>
-            <Input
-              id="nombre-clase"
-              required
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="WOD, Halterofilia…"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
             <Label htmlFor="capacidad-clase">Cupos</Label>
             <Input
               id="capacidad-clase"
@@ -158,6 +150,16 @@ function TemplateDialog({
               required
               value={capacidad}
               onChange={(e) => setCapacidad(e.target.value)}
+            />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label htmlFor="nombre-clase">Nombre</Label>
+            <Input
+              id="nombre-clase"
+              required
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="WOD, Halterofilia…"
             />
           </div>
 
