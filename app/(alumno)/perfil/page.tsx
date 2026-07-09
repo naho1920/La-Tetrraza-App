@@ -2,6 +2,7 @@
 
 import { Award, CalendarCheck, ChevronRight, CreditCard, Scale, UserPen } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import { BentoGrid, BentoIcon, BentoStat, BentoTile } from "@/components/ui/bento";
@@ -14,8 +15,13 @@ import { NotificationsBell } from "@/features/notificaciones/bell";
 import { contarClasesAsistidas, getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { AvatarUploader } from "@/features/perfil/avatar-uploader";
 import { ThemeToggle } from "@/features/theme/theme";
-import { WeightChart } from "@/features/perfil/weight-chart";
 import { WeightLogForm } from "@/features/perfil/weight-log-form";
+
+// Recharts (~255 KB) no debe bloquear el render inicial de esta ruta.
+const WeightChart = dynamic(
+  () => import("@/features/perfil/weight-chart").then((m) => m.WeightChart),
+  { ssr: false }
+);
 
 export default function PerfilPage() {
   const { userDoc, refreshUserDoc } = useAuth();

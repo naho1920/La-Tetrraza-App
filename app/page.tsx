@@ -3,6 +3,7 @@
 import { ArrowUpRight, Award, CalendarDays, Scale, UtensilsCrossed, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,7 +21,6 @@ import {
   listAchievementsForUser,
   marcarCelebrado,
 } from "@/features/medallas/api";
-import { AchievementCelebration } from "@/features/medallas/celebration";
 import type { Achievement, Skill } from "@/features/medallas/types";
 import { getMembershipForUser } from "@/features/membresias/api";
 import { ESTADO_LABEL, calcularEstadoMembresia } from "@/features/membresias/estado";
@@ -32,6 +32,13 @@ import { getUpcomingBookingsForUser } from "@/features/reservas/api";
 import { toISODate } from "@/features/reservas/date-utils";
 import type { Booking, ClassSession } from "@/features/reservas/types";
 import { AdminDashboard } from "@/features/estadisticas/dashboard";
+
+// framer-motion + canvas-confetti (~29 KB) solo hacen falta si hay una
+// medalla sin celebrar, así que no deben viajar en el bundle inicial de Home.
+const AchievementCelebration = dynamic(
+  () => import("@/features/medallas/celebration").then((m) => m.AchievementCelebration),
+  { ssr: false }
+);
 
 export default function Home() {
   const router = useRouter();

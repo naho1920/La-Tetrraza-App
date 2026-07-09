@@ -1,6 +1,7 @@
 "use client";
 
 import { collection, getDocs, query, where } from "firebase/firestore";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -19,8 +20,13 @@ import { getFormForUser } from "@/features/nutricion/api";
 import { NutritionStatusStepper } from "@/features/nutricion/status-stepper";
 import type { NutritionForm } from "@/features/nutricion/types";
 import { getUserDoc, getWeightLogs, type WeightLog } from "@/features/perfil/api";
-import { WeightChart } from "@/features/perfil/weight-chart";
 import type { Booking } from "@/features/reservas/types";
+
+// Recharts (~255 KB) no debe bloquear el render inicial de esta ruta.
+const WeightChart = dynamic(
+  () => import("@/features/perfil/weight-chart").then((m) => m.WeightChart),
+  { ssr: false }
+);
 
 async function getBookingsForUser(uid: string): Promise<Booking[]> {
   const snap = await getDocs(query(collection(db, "bookings"), where("uid", "==", uid)));
