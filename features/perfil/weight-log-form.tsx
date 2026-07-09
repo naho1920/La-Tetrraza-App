@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addWeightLog, type WeightLog } from "./api";
 
-export function WeightLogForm({
-  uid,
-  ultimoPeso,
-  onSaved,
-}: {
+interface WeightLogFormProps {
   uid: string;
   ultimoPeso: number | null;
   onSaved?: (log: WeightLog) => void;
-}) {
+  /** El onboarding dispara el envío desde un botón compartido con otro formulario. */
+  hideSubmitButton?: boolean;
+}
+
+export const WeightLogForm = forwardRef<HTMLFormElement, WeightLogFormProps>(function WeightLogForm(
+  { uid, ultimoPeso, onSaved, hideSubmitButton },
+  ref
+) {
   const [peso, setPeso] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedPeso, setSavedPeso] = useState<number | null>(ultimoPeso);
@@ -36,7 +39,7 @@ export function WeightLogForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2">
+    <form ref={ref} onSubmit={handleSubmit} className="flex items-end gap-2">
       <div className="flex flex-1 flex-col gap-1.5">
         <Label htmlFor="peso">Registrar peso (kg)</Label>
         <Input
@@ -50,9 +53,11 @@ export function WeightLogForm({
           placeholder={savedPeso ? `Último: ${savedPeso} kg` : "Ej. 68.5"}
         />
       </div>
-      <Button type="submit" className="h-11" disabled={saving || !peso}>
-        Guardar
-      </Button>
+      {!hideSubmitButton && (
+        <Button type="submit" className="h-11" disabled={saving || !peso}>
+          Guardar
+        </Button>
+      )}
     </form>
   );
-}
+});

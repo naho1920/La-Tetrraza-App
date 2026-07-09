@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,17 @@ function toList(value: string) {
     .filter(Boolean);
 }
 
-export function ProfileForm({ userDoc, onSaved }: { userDoc: UserDoc; onSaved?: () => void }) {
+interface ProfileFormProps {
+  userDoc: UserDoc;
+  onSaved?: () => void;
+  /** El onboarding dispara el envío desde un botón compartido con otro formulario. */
+  hideSubmitButton?: boolean;
+}
+
+export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(function ProfileForm(
+  { userDoc, onSaved, hideSubmitButton },
+  ref
+) {
   const [nombre, setNombre] = useState(userDoc.nombre ?? "");
   const [fechaNac, setFechaNac] = useState(userDoc.fechaNac ?? "");
   const [sexo, setSexo] = useState<Sexo | "">(userDoc.sexo ?? "");
@@ -99,7 +109,7 @@ export function ProfileForm({ userDoc, onSaved }: { userDoc: UserDoc; onSaved?: 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form ref={ref} onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nombre">Nombre completo</Label>
         <Input
@@ -266,9 +276,11 @@ export function ProfileForm({ userDoc, onSaved }: { userDoc: UserDoc; onSaved?: 
         />
       </div>
 
-      <Button type="submit" className="h-11 text-base" disabled={saving}>
-        {saving ? "Guardando…" : saved ? "¡Guardado!" : "Guardar cambios"}
-      </Button>
+      {!hideSubmitButton && (
+        <Button type="submit" className="h-11 text-base" disabled={saving}>
+          {saving ? "Guardando…" : saved ? "¡Guardado!" : "Guardar cambios"}
+        </Button>
+      )}
     </form>
   );
-}
+});

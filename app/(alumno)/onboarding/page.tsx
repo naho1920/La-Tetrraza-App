@@ -2,7 +2,7 @@
 
 import { Award, CalendarDays, User, UtensilsCrossed, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +25,18 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [terminando, setTerminando] = useState(false);
+  const weightFormRef = useRef<HTMLFormElement>(null);
+  const profileFormRef = useRef<HTMLFormElement>(null);
 
   if (!userDoc) return <PageSkeleton />;
+
+  // Un solo botón "Guardar" dispara ambos formularios (peso es opcional, se
+  // ignora en silencio si está vacío); el avance a paso 2 ya está resuelto
+  // por el `onSaved` de ProfileForm más abajo.
+  function handleGuardarPerfil() {
+    weightFormRef.current?.requestSubmit();
+    profileFormRef.current?.requestSubmit();
+  }
 
   // La usa tanto "Empezar" (paso 3) como "Cancelar" (pasos 1-2): en ambos
   // casos el onboarding termina y el alumno sigue a home.
@@ -58,8 +68,13 @@ export default function OnboardingPage() {
             <CardTitle>Completa tu perfil físico</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <WeightLogForm uid={userDoc.uid} ultimoPeso={null} />
-            <ProfileForm userDoc={userDoc} onSaved={() => setPaso(2)} />
+            <WeightLogForm ref={weightFormRef} uid={userDoc.uid} ultimoPeso={null} hideSubmitButton />
+            <ProfileForm
+              ref={profileFormRef}
+              userDoc={userDoc}
+              onSaved={() => setPaso(2)}
+              hideSubmitButton
+            />
           </CardContent>
         </Card>
       )}
@@ -120,8 +135,8 @@ export default function OnboardingPage() {
             </Button>
           )}
           {paso === 1 && (
-            <Button className="h-11 text-base" onClick={() => setPaso(2)}>
-              Siguiente
+            <Button className="h-11 text-base" onClick={handleGuardarPerfil}>
+              Guardar
             </Button>
           )}
           {paso === 2 && (
