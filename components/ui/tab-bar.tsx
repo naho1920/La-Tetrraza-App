@@ -15,10 +15,10 @@ export interface TabItem {
 }
 
 const TABS_ALUMNO: TabItem[] = [
+  { href: "/", label: "Inicio", icon: Home },
   { href: "/horarios", label: "Horarios", icon: CalendarDays },
   { href: "/nutricion", label: "Nutrición", icon: UtensilsCrossed },
   { href: "/medallas", label: "Medallas", icon: Award },
-  { href: "/", label: "Inicio", icon: Home },
   { href: "/perfil", label: "Perfil", icon: User },
 ];
 
