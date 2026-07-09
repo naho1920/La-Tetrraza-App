@@ -8,24 +8,10 @@ export function toISODate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Lunes de la semana que contiene `date`. */
-export function startOfWeek(date: Date): Date {
-  const result = new Date(date);
-  const dia = result.getDay(); // 0 domingo … 6 sábado
-  const offset = dia === 0 ? -6 : 1 - dia;
-  result.setDate(result.getDate() + offset);
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
-
 export function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
-}
-
-export function getWeekDates(monday: Date): Date[] {
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }
 
 export function sessionDateTime(session: Pick<ClassSession, "fecha" | "hora">): Date {

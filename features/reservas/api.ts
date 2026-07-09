@@ -42,10 +42,6 @@ export async function updateTemplate(id: string, data: Partial<Omit<ClassTemplat
   await updateDoc(doc(db, "classTemplates", id), data);
 }
 
-export async function toggleTemplateActiva(id: string, activa: boolean) {
-  await updateDoc(doc(db, "classTemplates", id), { activa });
-}
-
 export async function deleteTemplate(id: string) {
   await deleteDoc(doc(db, "classTemplates", id));
 }
@@ -70,10 +66,6 @@ export async function createOneOffSession(
     estado: "programada",
     templateId: null,
   });
-}
-
-export async function updateSession(id: string, data: Partial<Omit<ClassSession, "id">>) {
-  await updateDoc(doc(db, "classSessions", id), data);
 }
 
 export async function cancelSession(id: string) {
@@ -114,13 +106,6 @@ export async function generarSesionesParaFechas(fechasISO: string[]): Promise<nu
     }
   }
   return creadas;
-}
-
-/** Genera las sesiones de los próximos `dias` (atajo sobre `generarSesionesParaFechas`). */
-export async function generarSesionesDesdePlantillas(dias = 7): Promise<number> {
-  const hoy = new Date();
-  const fechas = Array.from({ length: dias }, (_, i) => toISODate(addDays(hoy, i)));
-  return generarSesionesParaFechas(fechas);
 }
 
 // ---------- Sesiones (alumno, tiempo real) ----------

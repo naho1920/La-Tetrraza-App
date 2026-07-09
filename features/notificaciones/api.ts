@@ -50,7 +50,7 @@ function fechaLegible(iso: string): string {
 
 // ---------- Coach ----------
 
-export async function getNotificacionesCoach(): Promise<Notificacion[]> {
+async function getNotificacionesCoach(): Promise<Notificacion[]> {
   const [solicitudes, medallasPendientes, pines, formsPendientes, formsRevision, memberships, users] =
     await Promise.all([
       listSolicitudesPendientes(),
@@ -139,7 +139,7 @@ export async function getNotificacionesCoach(): Promise<Notificacion[]> {
 
 // ---------- Alumno ----------
 
-export async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
+async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
   const desde = new Date(Date.now() - DIAS_VENTANA * 24 * 60 * 60 * 1000);
   const hoyISO = (() => {
     const d = new Date();
