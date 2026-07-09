@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "*.supabase.co" },
     ],
+    // Los SVG de medallas son assets locales de /public, nunca contenido
+    // subido por usuarios — seguro permitirlos con la CSP recomendada.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async headers() {
     return [

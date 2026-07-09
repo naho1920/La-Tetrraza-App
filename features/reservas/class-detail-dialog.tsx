@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Users } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +21,15 @@ import type { ClassSession } from "./types";
 
 function AvatarAlumno({ nombre, foto }: { nombre: string; foto: string | null }) {
   if (foto) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={foto} alt="" className="size-8 shrink-0 rounded-full object-cover" />;
+    return (
+      <Image
+        src={foto}
+        alt=""
+        width={32}
+        height={32}
+        className="size-8 shrink-0 rounded-full object-cover"
+      />
+    );
   }
   return (
     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-semibold text-primary">

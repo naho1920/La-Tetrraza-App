@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,8 +56,13 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
       <header className="flex items-center justify-between gap-3 py-2">
         <div className="flex items-center gap-3">
           {foto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={foto} alt="" className="size-11 rounded-full object-cover ring-2 ring-primary/30" />
+            <Image
+              src={foto}
+              alt=""
+              width={44}
+              height={44}
+              className="size-11 rounded-full object-cover ring-2 ring-primary/30"
+            />
           ) : (
             <div className="flex size-11 items-center justify-center rounded-full bg-primary-subtle font-heading font-semibold text-primary">
               {nombre.charAt(0)}

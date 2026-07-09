@@ -1,6 +1,7 @@
 "use client";
 
 import { Dumbbell, Flame, HeartPulse, Lock, PersonStanding, type LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -48,17 +49,19 @@ export function MedalBadge({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full ring-2",
+        "relative flex shrink-0 items-center justify-center rounded-full ring-2",
         SIZES[size],
         bloqueada && "opacity-40 grayscale"
       )}
       style={{ backgroundColor: `${color}22`, ["--tw-ring-color" as string]: color }}
     >
       {!imgFalla ? (
-        <img
+        <Image
           src={src}
           alt=""
-          className="size-full rounded-full object-contain p-1"
+          fill
+          sizes="96px"
+          className="rounded-full object-contain p-1"
           onError={() => setImgFalla(true)}
         />
       ) : (
