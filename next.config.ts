@@ -5,6 +5,10 @@ import withBundleAnalyzer from "@next/bundle-analyzer";
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
+  // El service worker solo debe correr en producción: en dev queda una versión
+  // vieja controlando la pestaña entre reinicios del server y sirve JS/CSS
+  // desincronizados con la caché de `.next` (rompe estilos y handlers de UI).
+  disable: process.env.NODE_ENV === "development",
 });
 
 // Solo se activa con `ANALYZE=true npm run build` — no afecta builds normales.
