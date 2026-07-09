@@ -4,6 +4,7 @@ import { ChevronRight, Clock, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { esClasePasada } from "./date-utils";
 import type { ClassSession } from "./types";
 
 export function ClassCard({
@@ -16,6 +17,7 @@ export function ClassCard({
   onOpen: () => void;
 }) {
   const cancelada = session.estado === "cancelada";
+  const pasada = esClasePasada(session);
   const lleno = session.cuposOcupados >= session.capacidad;
   const ocupacion = Math.min(1, session.cuposOcupados / session.capacidad);
 
@@ -25,7 +27,7 @@ export function ClassCard({
       onClick={onOpen}
       className={cn(
         "flex w-full items-center gap-3 rounded-3xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-muted/60",
-        cancelada && "opacity-60"
+        (cancelada || pasada) && "opacity-60"
       )}
     >
       <span
@@ -43,6 +45,10 @@ export function ClassCard({
           <span className="truncate font-medium">{session.nombre}</span>
           {cancelada ? (
             <Badge variant="destructive">Cancelada</Badge>
+          ) : pasada ? (
+            <Badge variant="outline" className="border-transparent bg-muted text-muted-foreground">
+              Vencida
+            </Badge>
           ) : reservada ? (
             <Badge>Reservada</Badge>
           ) : lleno ? (

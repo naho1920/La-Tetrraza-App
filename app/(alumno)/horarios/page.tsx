@@ -18,6 +18,7 @@ export default function HorariosPage() {
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
+  const [, setTick] = useState(0);
 
   const desde = toISODate(new Date(month.getFullYear(), month.getMonth(), 1));
   const hasta = toISODate(new Date(month.getFullYear(), month.getMonth() + 1, 0));
@@ -25,6 +26,13 @@ export default function HorariosPage() {
   useEffect(() => {
     return subscribeToWeekSessions(desde, hasta, setSessions);
   }, [desde, hasta]);
+
+  // Re-renderiza cada minuto para que una clase pase a "Vencida" en pantalla
+  // sin que el alumno tenga que recargar la página.
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!userDoc) return;

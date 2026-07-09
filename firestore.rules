@@ -20,6 +20,20 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.aprobado == true;
     }
 
+    // Guayaquil es UTC-5 todo el año (sin horario de verano), así que sumar
+    // 5 horas a la hora local guardada da el instante UTC equivalente,
+    // comparable directamente contra `request.time`.
+    function inicioSesionUTC(session) {
+      let f = session.fecha.split('-');
+      let h = session.hora.split(':');
+      return timestamp.date(int(f[0]), int(f[1]), int(f[2]))
+        + duration.value(int(h[0]) * 60 + int(h[1]) + 5 * 60, 'm');
+    }
+
+    function haComenzado(session) {
+      return request.time >= inicioSesionUTC(session);
+    }
+
     // Lista de acceso que gestiona la admin. Un alumno solo puede leer su
     // propia entrada (para saber si ya fue aprobado); la admin gestiona todo.
     match /approvedEmails/{email} {
@@ -77,9 +91,11 @@ service cloud.firestore {
 
       // La admin edita lo que sea; un alumno aprobado solo puede mover
       // `cuposOcupados` en 1 (reservar o cancelar su propio cupo) — nunca
-      // tocar capacidad, estado ni cualquier otro campo.
+      // tocar capacidad, estado ni cualquier otro campo, y nunca sobre una
+      // sesión que ya comenzó (reserva y cancelación quedan bloqueadas).
       allow update: if isAdmin()
         || (isApproved()
+            && !haComenzado(resource.data)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
             && (request.resource.data.cuposOcupados == resource.data.cuposOcupados + 1
                 || request.resource.data.cuposOcupados == resource.data.cuposOcupados - 1));

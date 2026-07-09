@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { Check, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { cancelarReserva, listBookingsForSession, reservarCupo, type BookingConAlumno } from "./api";
-import { puedeCancelar } from "./date-utils";
+import { esClasePasada, puedeCancelar } from "./date-utils";
 import type { ClassSession } from "./types";
 
 function AvatarAlumno({ nombre, foto }: { nombre: string; foto: string | null }) {
@@ -60,6 +60,7 @@ export function ClassDetailDialog({
   if (!userDoc) return null;
 
   const cancelada = session.estado === "cancelada";
+  const pasada = esClasePasada(session);
   const lleno = session.cuposOcupados >= session.capacidad;
   const cancelableAhora = puedeCancelar(session);
   const fechaLegible = new Date(`${session.fecha}T00:00:00`).toLocaleDateString("es-EC", {
@@ -106,6 +107,10 @@ export function ClassDetailDialog({
           </span>
           {cancelada ? (
             <Badge variant="destructive">Cancelada</Badge>
+          ) : pasada ? (
+            <Badge variant="outline" className="border-transparent bg-muted text-muted-foreground">
+              Vencida
+            </Badge>
           ) : lleno ? (
             <Badge variant="warning">Llena</Badge>
           ) : (
@@ -114,12 +119,14 @@ export function ClassDetailDialog({
         </div>
 
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase">Van a esta clase</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase">
+            {pasada ? "Asistencia" : "Van a esta clase"}
+          </p>
           {inscritos === null ? (
             <p className="py-2 text-sm text-muted-foreground">Cargando…</p>
           ) : inscritos.length === 0 ? (
             <p className="py-2 text-sm text-muted-foreground">
-              Nadie se ha inscrito todavía. ¡Sé la primera persona! 💪
+              {pasada ? "Nadie se inscribió a esta clase." : "Nadie se ha inscrito todavía. ¡Sé la primera persona! 💪"}
             </p>
           ) : (
             <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
@@ -137,6 +144,16 @@ export function ClassDetailDialog({
                     <span className="truncate">
                       {esUsuario ? "Tú" : alumno?.nombre ?? "Alumno del box"}
                     </span>
+                    {pasada && (
+                      <span
+                        className={cn(
+                          "ml-auto flex size-5 shrink-0 items-center justify-center rounded-full",
+                          booking.asistio ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        <Check className="size-3" />
+                      </span>
+                    )}
                   </li>
                 );
               })}
@@ -144,14 +161,14 @@ export function ClassDetailDialog({
           )}
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        {reservada && !cancelableAhora && !cancelada && (
+        {!pasada && error && <p className="text-sm text-destructive">{error}</p>}
+        {!pasada && reservada && !cancelableAhora && !cancelada && (
           <p className="text-xs text-muted-foreground">
             Ya no puedes cancelar: falta menos del límite permitido para esta clase.
           </p>
         )}
 
-        {!cancelada && (
+        {!cancelada && !pasada && (
           <Button
             className="h-11 w-full text-base"
             variant={reservada ? "outline" : "default"}

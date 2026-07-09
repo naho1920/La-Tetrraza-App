@@ -40,3 +40,8 @@ export function puedeCancelar(session: Pick<ClassSession, "fecha" | "hora" | "es
   const limite = sessionDateTime(session).getTime() - CANCELACION_HORAS_LIMITE * 60 * 60 * 1000;
   return Date.now() < limite;
 }
+
+/** La clase ya inició (hora de inicio en el pasado) — no depende del estado. */
+export function esClasePasada(session: Pick<ClassSession, "fecha" | "hora">): boolean {
+  return sessionDateTime(session).getTime() < Date.now();
+}

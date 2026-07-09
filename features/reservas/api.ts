@@ -19,7 +19,7 @@ import {
 
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
-import { addDays, puedeCancelar, toISODate } from "./date-utils";
+import { addDays, esClasePasada, puedeCancelar, toISODate } from "./date-utils";
 import type { Booking, ClassSession, ClassTemplate } from "./types";
 
 // ---------- Plantillas (admin) ----------
@@ -184,6 +184,7 @@ export async function reservarCupo(
     const session = sessionSnap.data() as Omit<ClassSession, "id">;
 
     if (session.estado !== "programada") throw new Error("Esta clase fue cancelada.");
+    if (esClasePasada(session)) throw new Error("Esta clase ya comenzó, no se puede reservar.");
     if (session.cuposOcupados >= session.capacidad) throw new Error("Ya no hay cupos disponibles.");
     if (bookingSnap.exists() && (bookingSnap.data() as Booking).estado === "reservado") {
       throw new Error("Ya tienes una reserva para esta clase.");
@@ -221,6 +222,7 @@ export async function cancelarReserva(sessionId: string, uid: string) {
     const booking = bookingSnap.data() as Booking;
 
     if (booking.estado !== "reservado") throw new Error("Esta reserva ya está cancelada.");
+    if (esClasePasada(session)) throw new Error("Esta clase ya comenzó, no se puede cancelar.");
     if (!puedeCancelar(session)) {
       throw new Error("Ya no puedes cancelar: falta menos del límite permitido para esta clase.");
     }
