@@ -32,4 +32,8 @@ export interface UserDoc {
   fechaIngreso: unknown;
   fcmTokens: string[];
   onboardingCompletado: boolean;
+  // Pantallas de bienvenida (3 slides); los docs creados antes de esta
+  // feature no tienen el campo — se tratan como ya vistas si además
+  // `onboardingCompletado` ya era true (ver onboarding-status.ts).
+  bienvenidaVista?: boolean;
 }

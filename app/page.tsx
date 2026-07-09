@@ -13,6 +13,7 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
+import { necesitaBienvenida, necesitaOnboarding } from "@/features/auth/onboarding-status";
 import {
   getSkill,
   getUncelebratedValidated,
@@ -68,19 +69,22 @@ export default function Home() {
     setCelebracion(null);
   }
 
+  const debeVerBienvenida = necesitaBienvenida(userDoc);
+  const debeVerOnboarding = necesitaOnboarding(userDoc);
+
   useEffect(() => {
     if (status === "signed-out") router.replace("/login");
     if (status === "not-approved") router.replace("/sin-acceso");
-    if (status === "ready" && userDoc?.rol === "alumno" && !userDoc.onboardingCompletado) {
-      router.replace("/onboarding");
-    }
-  }, [status, userDoc, router]);
+    if (status === "ready" && debeVerBienvenida) router.replace("/onboarding/bienvenida");
+    else if (status === "ready" && debeVerOnboarding) router.replace("/onboarding");
+  }, [status, debeVerBienvenida, debeVerOnboarding, router]);
 
   if (
     status === "loading" ||
     status === "signed-out" ||
     status === "not-approved" ||
-    (userDoc?.rol === "alumno" && !userDoc.onboardingCompletado)
+    debeVerBienvenida ||
+    debeVerOnboarding
   ) {
     return <PageSkeleton />;
   }

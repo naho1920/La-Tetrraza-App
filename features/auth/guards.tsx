@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useAuth } from "./AuthProvider";
+import { necesitaBienvenida, necesitaOnboarding } from "./onboarding-status";
 
 function FullscreenSpinner() {
   return (
@@ -13,17 +14,28 @@ function FullscreenSpinner() {
   );
 }
 
-/** Deja pasar solo a usuarios logueados y aprobados (cualquier rol). */
+/**
+ * Deja pasar solo a usuarios logueados y aprobados (cualquier rol), y a un
+ * alumno solo si ya vio la bienvenida y terminó el onboarding — así el gate
+ * aplica en cualquier ruta de `(alumno)`, no solo en Home. Las rutas del
+ * propio onboarding se excluyen de su propio redirect para no hacer loop.
+ */
 export function RequireApproved({ children }: { children: React.ReactNode }) {
-  const { status } = useAuth();
+  const { status, userDoc } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const debeVerBienvenida = necesitaBienvenida(userDoc) && pathname !== "/onboarding/bienvenida";
+  const debeVerOnboarding = necesitaOnboarding(userDoc) && pathname !== "/onboarding";
 
   useEffect(() => {
     if (status === "signed-out") router.replace("/login");
     if (status === "not-approved") router.replace("/sin-acceso");
-  }, [status, router]);
+    if (status === "ready" && debeVerBienvenida) router.replace("/onboarding/bienvenida");
+    else if (status === "ready" && debeVerOnboarding) router.replace("/onboarding");
+  }, [status, debeVerBienvenida, debeVerOnboarding, router]);
 
-  if (status !== "ready") return <FullscreenSpinner />;
+  if (status !== "ready" || debeVerBienvenida || debeVerOnboarding) return <FullscreenSpinner />;
   return <>{children}</>;
 }
 

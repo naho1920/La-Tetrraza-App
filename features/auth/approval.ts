@@ -41,6 +41,7 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
     fechaIngreso: serverTimestamp(),
     fcmTokens: [],
     onboardingCompletado: false,
+    bienvenidaVista: false,
   };
 
   await setDoc(userRef, newUserDoc);
@@ -49,6 +50,10 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
 
 export async function markOnboardingCompleted(uid: string) {
   await setDoc(doc(db, "users", uid), { onboardingCompletado: true }, { merge: true });
+}
+
+export async function markBienvenidaVista(uid: string) {
+  await setDoc(doc(db, "users", uid), { bienvenidaVista: true }, { merge: true });
 }
 
 export interface AccessRequest {
