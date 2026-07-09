@@ -28,7 +28,9 @@ export default function OnboardingPage() {
 
   if (!userDoc) return <PageSkeleton />;
 
-  async function handleTerminar() {
+  // La usa tanto "Empezar" (paso 3) como "Cancelar" (pasos 1-2): en ambos
+  // casos el onboarding termina y el alumno sigue a home.
+  async function handleSalir() {
     setTerminando(true);
     try {
       await markOnboardingCompleted(userDoc!.uid);
@@ -73,9 +75,6 @@ export default function OnboardingPage() {
               prepare un plan alimenticio personalizado. Por ahora puedes continuar — te avisamos
               cuando esté listo.
             </p>
-            <Button className="h-11 text-base" onClick={() => setPaso(3)}>
-              Continuar
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -97,12 +96,46 @@ export default function OnboardingPage() {
                 </div>
               </div>
             ))}
-            <Button className="mt-2 h-11 text-base" disabled={terminando} onClick={handleTerminar}>
-              {terminando ? "Un momento…" : "Empezar"}
-            </Button>
           </CardContent>
         </Card>
       )}
+
+      <div className="flex items-center justify-between gap-2">
+        {paso > 1 ? (
+          <Button
+            variant="outline"
+            disabled={terminando}
+            onClick={() => setPaso((p) => (p - 1) as 1 | 2)}
+          >
+            Atrás
+          </Button>
+        ) : (
+          <span />
+        )}
+
+        <div className="flex items-center gap-2">
+          {paso < 3 && (
+            <Button variant="ghost" disabled={terminando} onClick={handleSalir}>
+              Cancelar
+            </Button>
+          )}
+          {paso === 1 && (
+            <Button className="h-11 text-base" onClick={() => setPaso(2)}>
+              Siguiente
+            </Button>
+          )}
+          {paso === 2 && (
+            <Button className="h-11 text-base" onClick={() => setPaso(3)}>
+              Siguiente
+            </Button>
+          )}
+          {paso === 3 && (
+            <Button className="h-11 text-base" disabled={terminando} onClick={handleSalir}>
+              {terminando ? "Un momento…" : "Empezar"}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
