@@ -32,6 +32,7 @@ import {
   calcularEstadoMembresia,
 } from "@/features/membresias/estado";
 import type { EstadoMembresia, MembershipPlan } from "@/features/membresias/types";
+import { ComprobantesCard } from "@/features/pagos/comprobantes-card";
 
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -209,7 +210,7 @@ function AsignarCard({
   );
 }
 
-function RegistrarPagoCard({ alumnos }: { alumnos: UserDoc[] }) {
+function RegistrarPagoCard({ alumnos, presetUid }: { alumnos: UserDoc[]; presetUid?: string }) {
   const [uid, setUid] = useState("");
   const [membershipId, setMembershipId] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -219,6 +220,10 @@ function RegistrarPagoCard({ alumnos }: { alumnos: UserDoc[] }) {
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (presetUid) handleSelectUid(presetUid);
+  }, [presetUid]);
 
   async function handleSelectUid(nuevoUid: string) {
     setUid(nuevoUid);
@@ -320,6 +325,7 @@ export default function AdminMembresiasPage() {
   const [alumnos, setAlumnos] = useState<UserDoc[]>([]);
   const [memberships, setMemberships] = useState<MembershipConAlumno[]>([]);
   const [filtro, setFiltro] = useState<EstadoMembresia | "todas">("todas");
+  const [presetUid, setPresetUid] = useState<string | undefined>(undefined);
 
   function cargar() {
     listAllPlansAdmin().then(setPlans);
@@ -338,7 +344,8 @@ export default function AdminMembresiasPage() {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
       <AsignarCard alumnos={alumnos} plans={plans} onAsignado={cargar} />
-      <RegistrarPagoCard alumnos={alumnos} />
+      <ComprobantesCard onRevisado={setPresetUid} />
+      <RegistrarPagoCard alumnos={alumnos} presetUid={presetUid} />
       <PlansCard plans={plans} onChanged={cargar} />
 
       <Card>

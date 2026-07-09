@@ -47,7 +47,8 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
     alertas.nutricionPendientes === 0 &&
     alertas.medallasPorValidar === 0 &&
     alertas.pinesPendientes === 0 &&
-    alertas.membresiasPorVencer === 0;
+    alertas.membresiasPorVencer === 0 &&
+    alertas.comprobantesPendientes === 0;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
@@ -150,6 +151,7 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
                 <AlertaRow href="/medallas-admin" label="Medallas por validar" count={alertas.medallasPorValidar} />
                 <AlertaRow href="/medallas-admin" label="Pines pendientes" count={alertas.pinesPendientes} />
                 <AlertaRow href="/membresias" label="Membresías por vencer" count={alertas.membresiasPorVencer} />
+                <AlertaRow href="/membresias" label="Comprobantes por revisar" count={alertas.comprobantesPendientes} />
               </div>
             )
           )}

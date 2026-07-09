@@ -178,6 +178,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // El alumno reporta su propio comprobante (creación real vía route
+    // handler con Admin SDK); solo la coach transiciona el estado.
+    match /paymentReports/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+      allow create: if isApproved()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.estado == 'pendiente';
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'revisadoPor', 'revisadoAt'])
+        && request.resource.data.estado == 'revisado';
+      allow delete: if isAdmin();
+    }
+
     // Todavía no hay más colecciones activas: se agregan rules por fase,
     // junto con cada feature (ver roadmap-la-terraza.md).
     match /{document=**} {

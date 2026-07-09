@@ -15,6 +15,9 @@ import {
 } from "@/features/membresias/api";
 import { ESTADO_BADGE_VARIANT, ESTADO_LABEL, calcularEstadoMembresia } from "@/features/membresias/estado";
 import type { Membership, MembershipPlan, Payment } from "@/features/membresias/types";
+import { getReportsForUser } from "@/features/pagos/api";
+import { ReportarPagoDialog } from "@/features/pagos/reportar-pago-dialog";
+import type { PaymentReport } from "@/features/pagos/types";
 
 export default function MembresiaPage() {
   const { userDoc } = useAuth();
@@ -22,6 +25,11 @@ export default function MembresiaPage() {
   const [plan, setPlan] = useState<MembershipPlan | null>(null);
   const [pagos, setPagos] = useState<Payment[]>([]);
   const [planesDisponibles, setPlanesDisponibles] = useState<MembershipPlan[]>([]);
+  const [reportes, setReportes] = useState<PaymentReport[]>([]);
+
+  function cargarReportes(uid: string) {
+    getReportsForUser(uid).then(setReportes);
+  }
 
   useEffect(() => {
     if (!userDoc) return;
@@ -37,6 +45,7 @@ export default function MembresiaPage() {
     });
     listPaymentsForUser(userDoc.uid).then((p) => !ignore && setPagos(p));
     listActivePlans().then((p) => !ignore && setPlanesDisponibles(p));
+    getReportsForUser(userDoc.uid).then((r) => !ignore && setReportes(r));
 
     return () => {
       ignore = true;
@@ -78,6 +87,42 @@ export default function MembresiaPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Reportar pago</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            Sube tu comprobante o avísale a tu coach que ya pagaste este mes.
+          </p>
+          {userDoc && (
+            <ReportarPagoDialog onReportado={() => cargarReportes(userDoc.uid)} />
+          )}
+        </CardContent>
+      </Card>
+
+      {reportes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tus comprobantes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col divide-y divide-border">
+              {reportes.map((reporte) => (
+                <li key={reporte.id} className="flex flex-col gap-1 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">{reporte.nota || "Sin nota"}</span>
+                    <Badge variant={reporte.estado === "revisado" ? "success" : "warning"}>
+                      {reporte.estado === "revisado" ? "Revisado ✓" : "Enviado — en revisión"}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

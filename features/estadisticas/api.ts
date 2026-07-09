@@ -6,6 +6,7 @@ import { listAllMembershipsWithAlumno } from "@/features/membresias/api";
 import { calcularEstadoMembresia } from "@/features/membresias/estado";
 import { listAchievementsByEstado, listPinesPendientes } from "@/features/medallas/api";
 import { listFormsByEstado } from "@/features/nutricion/api";
+import { listReportsByEstado } from "@/features/pagos/api";
 import type { Booking, ClassSession } from "@/features/reservas/types";
 
 function mesISO(date: Date): string {
@@ -45,15 +46,17 @@ export interface Alertas {
   medallasPorValidar: number;
   pinesPendientes: number;
   membresiasPorVencer: number;
+  comprobantesPendientes: number;
 }
 
 export async function getAlertas(): Promise<Alertas> {
-  const [pendientes, enRevision, medallasPendientes, pines, memberships] = await Promise.all([
+  const [pendientes, enRevision, medallasPendientes, pines, memberships, comprobantes] = await Promise.all([
     listFormsByEstado("pendiente"),
     listFormsByEstado("en_revision"),
     listAchievementsByEstado("pendiente"),
     listPinesPendientes(),
     listAllMembershipsWithAlumno(),
+    listReportsByEstado("pendiente"),
   ]);
 
   const membresiasPorVencer = memberships.filter((m) => {
@@ -66,6 +69,7 @@ export async function getAlertas(): Promise<Alertas> {
     medallasPorValidar: medallasPendientes.length,
     pinesPendientes: pines.length,
     membresiasPorVencer,
+    comprobantesPendientes: comprobantes.length,
   };
 }
 
