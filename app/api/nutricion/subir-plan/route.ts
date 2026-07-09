@@ -2,6 +2,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { excedeLimite, RESPUESTA_LIMITE } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { DOCS_BUCKET } from "@/lib/supabase/client";
 
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
   }
   if (decoded.admin !== true) {
     return NextResponse.json({ error: "Solo la admin puede subir planes." }, { status: 403 });
+  }
+
+  if (excedeLimite(`subir-plan:${decoded.uid}`, 10)) {
+    return NextResponse.json(RESPUESTA_LIMITE, { status: 429 });
   }
 
   const formData = await request.formData();

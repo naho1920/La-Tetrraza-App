@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { ArrowUpRight, Award, CalendarDays, Scale, UtensilsCrossed, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,35 +8,48 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AdminTabBar } from "@/components/ui/admin-tab-bar";
+import { BentoGrid, BentoIcon, BentoStat, BentoTile } from "@/components/ui/bento";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
-import { getSkill, getUncelebratedValidated, marcarCelebrado } from "@/features/medallas/api";
+import {
+  getSkill,
+  getUncelebratedValidated,
+  listAchievementsForUser,
+  marcarCelebrado,
+} from "@/features/medallas/api";
 import { AchievementCelebration } from "@/features/medallas/celebration";
 import type { Achievement, Skill } from "@/features/medallas/types";
+import { getMembershipForUser } from "@/features/membresias/api";
+import { ESTADO_LABEL, calcularEstadoMembresia } from "@/features/membresias/estado";
+import type { EstadoMembresia } from "@/features/membresias/types";
 import { NotificationsBell } from "@/features/notificaciones/bell";
+import { getLatestWeightLog } from "@/features/perfil/api";
 import { getUpcomingBookingsForUser } from "@/features/reservas/api";
 import { toISODate } from "@/features/reservas/date-utils";
 import type { Booking, ClassSession } from "@/features/reservas/types";
 import { AdminDashboard } from "@/features/estadisticas/dashboard";
 
-function FullscreenSpinner() {
-  return (
-    <div className="flex flex-1 items-center justify-center py-24">
-      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-    </div>
-  );
-}
-
 export default function Home() {
   const router = useRouter();
-  const { status, user, userDoc } = useAuth();
+  const { status, userDoc } = useAuth();
   const [proximas, setProximas] = useState<Array<{ booking: Booking; session: ClassSession }>>([]);
   const [celebracion, setCelebracion] = useState<{ achievement: Achievement; skill: Skill } | null>(null);
+  const [ultimoPeso, setUltimoPeso] = useState<number | null>(null);
+  const [medallas, setMedallas] = useState<number | null>(null);
+  const [estadoMembresia, setEstadoMembresia] = useState<EstadoMembresia | null>(null);
 
   useEffect(() => {
     if (status !== "ready" || userDoc?.rol !== "alumno") return;
     getUpcomingBookingsForUser(userDoc.uid, toISODate(new Date())).then(setProximas);
+    getLatestWeightLog(userDoc.uid).then((log) => setUltimoPeso(log?.pesoKg ?? null));
+    listAchievementsForUser(userDoc.uid)
+      .then((a) => setMedallas(a.filter((x) => x.estado === "validado").length))
+      .catch(() => setMedallas(0));
+    getMembershipForUser(userDoc.uid)
+      .then((m) => setEstadoMembresia(m ? calcularEstadoMembresia(m.fechaFin) : null))
+      .catch(() => setEstadoMembresia(null));
   }, [status, userDoc]);
 
   useEffect(() => {
@@ -68,7 +81,7 @@ export default function Home() {
     status === "not-approved" ||
     (userDoc?.rol === "alumno" && !userDoc.onboardingCompletado)
   ) {
-    return <FullscreenSpinner />;
+    return <PageSkeleton />;
   }
 
   if (userDoc?.rol === "admin") {
@@ -105,34 +118,65 @@ export default function Home() {
           <NotificationsBell />
         </header>
 
-        <section className="flex flex-col gap-3 rounded-3xl bg-card-dark p-5 text-card-dark-foreground">
-          <h2 className="font-heading text-base font-semibold">Tus próximas clases</h2>
-          {proximas.length === 0 ? (
-            <p className="text-sm text-card-dark-foreground/60">
-              Todavía no tienes clases reservadas.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-white/10">
-              {proximas.map(({ booking, session }) => (
-                <li key={booking.id} className="flex items-center gap-2.5 py-2.5 text-sm">
-                  <CalendarDays className="size-4 shrink-0 text-primary-light" />
-                  <span>
-                    {session.fecha} · {session.hora} — {session.nombre}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Button
-            render={<Link href="/horarios" />}
-            className="bg-white text-neutral-900 hover:bg-white/90"
-          >
-            Ver calendario de clases
-          </Button>
-        </section>
+        <BentoGrid>
+          <BentoTile variant="dark" className="col-span-2 gap-3 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-base font-semibold">Tus próximas clases</h2>
+              <BentoIcon icon={CalendarDays} variant="dark" />
+            </div>
+            {proximas.length === 0 ? (
+              <p className="text-sm text-card-dark-foreground/60">
+                Todavía no tienes clases reservadas.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-white/10">
+                {proximas.map(({ booking, session }) => (
+                  <li key={booking.id} className="flex items-center gap-2.5 py-2.5 text-sm">
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary-light" />
+                    <span>
+                      {session.fecha} · {session.hora} — {session.nombre}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button
+              render={<Link href="/horarios" />}
+              className="bg-white text-neutral-900 hover:bg-white/90"
+            >
+              Ver calendario de clases
+            </Button>
+          </BentoTile>
+
+          <BentoTile href="/perfil" className="aspect-square">
+            <BentoIcon icon={Scale} />
+            <BentoStat valor={ultimoPeso ? `${ultimoPeso} kg` : "—"} label="Peso actual" />
+          </BentoTile>
+
+          <BentoTile href="/medallas" className="aspect-square">
+            <BentoIcon icon={Award} />
+            <BentoStat valor={medallas ?? "…"} label="Medallas ganadas" />
+          </BentoTile>
+
+          <BentoTile href="/nutricion" variant="accent" className="aspect-square">
+            <div className="flex items-start justify-between">
+              <BentoIcon icon={UtensilsCrossed} variant="accent" />
+              <ArrowUpRight className="size-4 opacity-70" />
+            </div>
+            <BentoStat variant="accent" valor="Nutrición" label="Tu plan alimenticio" />
+          </BentoTile>
+
+          <BentoTile href="/membresia" className="aspect-square">
+            <BentoIcon icon={Wallet} />
+            <BentoStat
+              valor={estadoMembresia ? ESTADO_LABEL[estadoMembresia] : "—"}
+              label="Membresía"
+            />
+          </BentoTile>
+        </BentoGrid>
 
         <Button variant="ghost" onClick={() => signOutUser()}>
-          Cerrar sesión ({user?.email})
+          Cerrar sesión
         </Button>
       </div>
       <TabBar />

@@ -1,0 +1,42 @@
+/**
+ * Rate limiting en memoria para las API routes (ventana deslizante simple).
+ *
+ * Suficiente para este backend: las rutas ya exigen token de Firebase, así
+ * que esto solo frena abuso/bucles de un usuario autenticado sin necesidad
+ * de pagar Redis ni servicios externos. En serverless cada instancia tiene
+ * su propio contador, lo cual sigue acotando el abuso por instancia.
+ */
+
+interface Ventana {
+  timestamps: number[];
+}
+
+const ventanas = new Map<string, Ventana>();
+
+const VENTANA_MS = 60_000;
+const MAX_ENTRADAS = 5_000; // tope de claves para no crecer sin límite
+
+/**
+ * Devuelve `true` si la clave (uid o IP) superó `max` peticiones por minuto.
+ */
+export function excedeLimite(clave: string, max: number): boolean {
+  const ahora = Date.now();
+
+  if (ventanas.size > MAX_ENTRADAS) ventanas.clear();
+
+  const ventana = ventanas.get(clave) ?? { timestamps: [] };
+  ventana.timestamps = ventana.timestamps.filter((t) => ahora - t < VENTANA_MS);
+
+  if (ventana.timestamps.length >= max) {
+    ventanas.set(clave, ventana);
+    return true;
+  }
+
+  ventana.timestamps.push(ahora);
+  ventanas.set(clave, ventana);
+  return false;
+}
+
+export const RESPUESTA_LIMITE = {
+  error: "Demasiadas peticiones. Espera un minuto e inténtalo de nuevo.",
+} as const;

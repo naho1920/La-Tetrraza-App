@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { MonthCalendar, type DayMarker } from "@/components/ui/month-calendar";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { subscribeToUserBookings, subscribeToWeekSessions } from "@/features/reservas/api";
 import { ClassCard } from "@/features/reservas/class-card";
@@ -48,7 +49,7 @@ export default function HorariosPage() {
     return result;
   }, [sessions, reservedSessionIds]);
 
-  if (!userDoc) return null;
+  if (!userDoc) return <PageSkeleton />;
 
   const sesionesDelDia = sessions
     .filter((s) => s.fecha === selected)

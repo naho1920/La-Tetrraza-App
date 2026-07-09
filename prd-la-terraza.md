@@ -409,6 +409,7 @@ Colecciones de nivel superior (NoSQL — documentos con campos, no tablas):
 users/{uid}
   rol: "alumno" | "admin" · aprobado: bool · nombre · foto · email
   fechaNac · sexo · estaturaCm · alergias[] · lesiones[] · meta
+  cuelloCm · cinturaCm · piernaCm · brazoCm   (medidas corporales, opcionales)
   telefono · contactoEmergencia · fechaIngreso · fcmTokens[]
   └─ weightLogs/{id}: pesoKg · fecha        (subcolección)
 
@@ -449,7 +450,9 @@ personalRecords/{id}  uid · movimiento · valor · unidad · fecha    (v2)
 - `bookings`, `nutritionForms`, `achievements`: el alumno crea/lee solo documentos con su `uid`; admin todo.
 - `skills`, `classTemplates`, `classSessions`, `membershipPlans`: lectura para autenticados aprobados; escritura solo admin.
 - `nutritionPlans`, `memberships`, `payments`: lectura solo del dueño; escritura solo admin.
-- Storage `nutrition-plans/{uid}/...` y `achievement-videos/{uid}/...`: lectura del dueño + admin; escritura según el flujo.
+- Storage `nutrition-plans/{uid}/...` y `achievement-videos/{uid}/...`: lectura del dueño + admin; escritura según el flujo (bucket privado, URLs firmadas).
+- Storage `avatars/{uid}/avatar.*` (bucket público): fotos de perfil que la app muestra a otros alumnos; solo se suben vía API route autenticada (máx 2 MB, JPG/PNG/WebP).
+- API routes con rate limiting por usuario/minuto (responde 429 al exceder) y headers de seguridad globales (X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy).
 
 **Reglas de integridad clave:**
 - **Reserva de cupo:** transacción que lee `cuposOcupados`, valida contra `capacidad` e incrementa — dos personas no pueden tomar el último cupo.

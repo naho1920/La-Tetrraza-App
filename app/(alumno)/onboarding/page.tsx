@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { markOnboardingCompleted } from "@/features/auth/approval";
 import { ProfileForm } from "@/features/perfil/profile-form";
@@ -25,7 +26,7 @@ export default function OnboardingPage() {
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [terminando, setTerminando] = useState(false);
 
-  if (!userDoc) return null;
+  if (!userDoc) return <PageSkeleton />;
 
   async function handleTerminar() {
     setTerminando(true);

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getFormForUser, getOrCreateDraftForm, getPlanesForUser } from "@/features/nutricion/api";
 import { NutritionFormWizard } from "@/features/nutricion/form-wizard";
@@ -62,7 +63,7 @@ export default function NutricionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userDoc]);
 
-  if (!userDoc || loading) return null;
+  if (!userDoc || loading) return <PageSkeleton />;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">

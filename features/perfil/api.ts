@@ -9,9 +9,10 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
-import { db } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
 
 export type PerfilFormValues = Pick<
@@ -20,6 +21,10 @@ export type PerfilFormValues = Pick<
   | "fechaNac"
   | "sexo"
   | "estaturaCm"
+  | "cuelloCm"
+  | "cinturaCm"
+  | "piernaCm"
+  | "brazoCm"
   | "alergias"
   | "lesiones"
   | "meta"
@@ -65,4 +70,37 @@ export async function getWeightLogs(uid: string): Promise<WeightLog[]> {
   const q = query(collection(db, "users", uid, "weightLogs"), orderBy("fecha", "asc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<WeightLog, "id">) }));
+}
+
+/** Total de clases a las que la coach marcó asistencia. */
+export async function contarClasesAsistidas(uid: string): Promise<number> {
+  const q = query(
+    collection(db, "bookings"),
+    where("uid", "==", uid),
+    where("asistio", "==", true)
+  );
+  const snap = await getDocs(q);
+  return snap.size;
+}
+
+/**
+ * Sube la foto al bucket público de avatares (vía API route con service
+ * role) y guarda la URL en el perfil. Gratis: usa el mismo Supabase Storage
+ * que ya tenemos para videos y planes.
+ */
+export async function subirFotoPerfil(uid: string, archivo: File): Promise<string> {
+  const token = await auth.currentUser?.getIdToken();
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+
+  const res = await fetch("/api/perfil/subir-avatar", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token ?? ""}` },
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "No se pudo subir la foto.");
+
+  await updateDoc(doc(db, "users", uid), { foto: data.url });
+  return data.url as string;
 }

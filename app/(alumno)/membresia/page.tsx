@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   getMembershipForUser,
@@ -42,7 +43,7 @@ export default function MembresiaPage() {
     };
   }, [userDoc]);
 
-  if (!userDoc) return null;
+  if (!userDoc) return <PageSkeleton />;
 
   const estado = membership ? calcularEstadoMembresia(membership.fechaFin) : null;
 

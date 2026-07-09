@@ -50,7 +50,7 @@ export function WeightLogForm({
           placeholder={savedPeso ? `Último: ${savedPeso} kg` : "Ej. 68.5"}
         />
       </div>
-      <Button type="submit" disabled={saving || !peso}>
+      <Button type="submit" className="h-11" disabled={saving || !peso}>
         Guardar
       </Button>
     </form>

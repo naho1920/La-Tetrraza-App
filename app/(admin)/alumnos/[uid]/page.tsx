@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
 import { listAchievementsForUser, listSkills } from "@/features/medallas/api";
@@ -53,7 +54,7 @@ export default function FichaAlumnoPage() {
     });
   }, [uid]);
 
-  if (!alumno) return null;
+  if (!alumno) return <PageSkeleton />;
 
   const asistencias = bookings.filter((b) => b.asistio === true).length;
   const faltas = bookings.filter((b) => b.asistio === false).length;

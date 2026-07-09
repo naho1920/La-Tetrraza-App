@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MedalBadge } from "@/components/ui/medal-badge";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { textoHito } from "@/features/medallas/bw";
 import { CATALOGO_MEDALLAS, PILARES } from "@/features/medallas/catalogo";
@@ -85,7 +86,7 @@ export default function MedallasPage() {
     return { total: totalNiveles, logradas: conseguidas };
   }, [skillsMostradas, achievements]);
 
-  if (!userDoc) return null;
+  if (!userDoc) return <PageSkeleton />;
 
   const progreso = total === 0 ? 0 : logradas / total;
   const colorSeleccion = seleccion

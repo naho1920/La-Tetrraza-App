@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { adminAuth } from "@/lib/firebase/admin";
+import { excedeLimite, RESPUESTA_LIMITE } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { DOCS_BUCKET } from "@/lib/supabase/client";
 
@@ -14,6 +15,10 @@ export async function GET(request: Request) {
     decoded = await adminAuth.verifyIdToken(token);
   } catch {
     return NextResponse.json({ error: "Token inválido." }, { status: 401 });
+  }
+
+  if (excedeLimite(`ver-plan:${decoded.uid}`, 30)) {
+    return NextResponse.json(RESPUESTA_LIMITE, { status: 429 });
   }
 
   const path = new URL(request.url).searchParams.get("path");

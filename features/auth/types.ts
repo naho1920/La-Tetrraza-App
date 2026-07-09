@@ -19,6 +19,11 @@ export interface UserDoc {
   fechaNac: string | null;
   sexo: Sexo | null;
   estaturaCm: number | null;
+  // Medidas corporales en cm (opcionales; los docs antiguos no las tienen).
+  cuelloCm?: number | null;
+  cinturaCm?: number | null;
+  piernaCm?: number | null;
+  brazoCm?: number | null;
   alergias: string[];
   lesiones: string[];
   meta: Meta | null;
