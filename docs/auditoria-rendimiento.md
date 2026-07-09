@@ -87,8 +87,8 @@ Ya está aislado correctamente por code-splitting de rutas (no contamina otras p
 
 | Hallazgo | Impacto | Corrección | Riesgo |
 |---|---|---|---|
-| `components/ui/label.tsx` — `<label>` estático, sin hooks ni handlers | Bajo (siempre se renderiza dentro de formularios ya marcados cliente, así que el beneficio real es mínimo) | Quitar `"use client"` | Bajo |
-| `components/ui/admin-tab-bar.tsx` — solo define un array estático y renderiza `<TabBar>` (que sí es cliente) | Muy bajo (archivo trivial) | Quitar `"use client"` | Bajo |
+| `components/ui/label.tsx` — `<label>` estático, sin hooks ni handlers | Bajo (siempre se renderiza dentro de formularios ya marcados cliente, así que el beneficio real es mínimo) | Quitar `"use client"` — **aplicado** | Bajo |
+| ~~`components/ui/admin-tab-bar.tsx`~~ | — | **Descartado tras probarlo**: pasa `TABS_ADMIN` (con íconos de Lucide, funciones) como prop a `TabBar`, que sí es cliente — cruzar ese límite server→client rompe el build (`Functions cannot be passed directly to Client Components`). Se revirtió, queda con `"use client"`. | — |
 
 No se encontraron páginas completas candidatas a Server Component sin rediseño mayor.
 
@@ -122,7 +122,8 @@ No se encontraron páginas completas candidatas a Server Component sin rediseño
 | 2 | `next/dynamic(ssr:false)` para `AchievementCelebration` en Home | Medio | Bajo |
 | 3 | `next/dynamic(ssr:false)` para el gráfico de Recharts en `/estadisticas` y `/perfil` | Medio | Bajo |
 | 4 | Migrar avatares (`class-detail-dialog.tsx`, `dashboard.tsx`) a `next/image` | Bajo | Bajo |
-| 5 | Quitar `"use client"` de `label.tsx` y `admin-tab-bar.tsx` | Bajo | Bajo |
+| 5 | Quitar `"use client"` de `label.tsx` | Bajo | Bajo |
+| ~~5b~~ | ~~Quitar `"use client"` de `admin-tab-bar.tsx`~~ — **descartado**: al probarlo, `AdminTabBar` pasa `TABS_ADMIN` (con íconos de Lucide, funciones no serializables) como prop al `TabBar` cliente, y romper ese límite server→client hace fallar el build (`Functions cannot be passed directly to Client Components`). Se revirtió. | — | — |
 | 6 | Eliminar `components/ui/separator.tsx` (sin uso) | Bajo | Bajo |
 | 7 | Mover `shadcn` a `devDependencies` | Bajo | Bajo |
 | 8 | Revisar (no borrar sin confirmar) los 7 exports muertos de la sección 1.2 | Bajo | Medio |
