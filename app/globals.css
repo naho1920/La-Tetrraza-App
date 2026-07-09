@@ -108,48 +108,49 @@
 }
 
 .dark {
-  /* Fondo violeta profundo — PRD §6.2 */
-  --background: #0F0B1A;
-  --foreground: #F5F3FF;
-  --card: #1A1428;
-  --card-foreground: #F5F3FF;
-  --card-dark: #1A1428;
-  --card-dark-foreground: #F5F3FF;
-  --popover: #1A1428;
-  --popover-foreground: #F5F3FF;
-  --primary: #A186EE; /* morado más claro para contraste sobre fondo oscuro */
-  --primary-foreground: #1E1B2E;
+  /* Modo oscuro tipo bento: fondo casi negro neutro, tiles grafito
+     elevados, pills blancos y el morado de marca como acento vivo. */
+  --background: #0C0C0E;
+  --foreground: #F5F5F7;
+  --card: #19191D;
+  --card-foreground: #F5F5F7;
+  --card-dark: #232328; /* el tile "hero" queda un paso más elevado */
+  --card-dark-foreground: #FAFAFA;
+  --popover: #19191D;
+  --popover-foreground: #F5F5F7;
+  --primary: #A186EE; /* morado claro: acento con texto oscuro, como la referencia */
+  --primary-foreground: #17141F;
   --primary-dark: #C3B0F6;
-  --primary-light: #4E1FB5;
-  --primary-subtle: #221A36;
-  --secondary: #241B38;
-  --secondary-foreground: #C3B0F6;
-  --muted: #241B38;
-  --muted-foreground: #A79FC2;
-  --accent: #4E1FB5;
-  --accent-foreground: #F5F3FF;
+  --primary-light: #C3B0F6;
+  --primary-subtle: #241E33;
+  --secondary: #232328;
+  --secondary-foreground: #E4E4E7;
+  --muted: #232328;
+  --muted-foreground: #A1A1AA;
+  --accent: #2A2440;
+  --accent-foreground: #C3B0F6;
   --accent-gold: #FBBF24;
   --success: #34D399;
-  --success-foreground: #0F0B1A;
+  --success-foreground: #0C0C0E;
   --warning: #FBBF24;
-  --warning-foreground: #0F0B1A;
+  --warning-foreground: #0C0C0E;
   --destructive: #F87171;
-  --destructive-foreground: #0F0B1A;
-  --border: rgba(245, 243, 255, 0.12);
-  --input: rgba(245, 243, 255, 0.16);
+  --destructive-foreground: #0C0C0E;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
   --ring: #A186EE;
   --chart-1: #A186EE;
   --chart-2: #FBBF24;
   --chart-3: #34D399;
   --chart-4: #C3B0F6;
-  --chart-5: #4E1FB5;
-  --sidebar: #1A1428;
-  --sidebar-foreground: #F5F3FF;
+  --chart-5: #6934E1;
+  --sidebar: #19191D;
+  --sidebar-foreground: #F5F5F7;
   --sidebar-primary: #A186EE;
-  --sidebar-primary-foreground: #1E1B2E;
-  --sidebar-accent: #4E1FB5;
-  --sidebar-accent-foreground: #F5F3FF;
-  --sidebar-border: rgba(245, 243, 255, 0.12);
+  --sidebar-primary-foreground: #17141F;
+  --sidebar-accent: #2A2440;
+  --sidebar-accent-foreground: #F5F5F7;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #A186EE;
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Sora, Inter } from "next/font/google";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { THEME_INIT_SCRIPT } from "@/features/theme/init-script";
 import "./globals.css";
 
 const sora = Sora({
@@ -34,7 +35,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#6934E1",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4F4F6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0C0C0E" },
+  ],
 };
 
 export default function RootLayout({
@@ -46,8 +50,11 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${sora.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {/* Aplica el tema guardado antes de pintar el contenido (sin flash). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

@@ -26,25 +26,31 @@ export function TabBar({ tabs = TABS_ALUMNO }: { tabs?: TabItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky bottom-0 z-10 flex border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      {tabs.map(({ href, label, icon: Icon, match }) => {
-        const base = match ?? href;
-        const active =
-          base === "/" ? pathname === "/" : pathname === base || pathname.startsWith(`${base}/`);
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-              active ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            <Icon className="size-5" strokeWidth={active ? 2.5 : 2} />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="pointer-events-none sticky bottom-0 z-10 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between gap-1 rounded-full bg-neutral-900/90 p-2 shadow-lg shadow-black/25 ring-1 ring-white/10 backdrop-blur dark:bg-card/90">
+        {tabs.map(({ href, label, icon: Icon, match }) => {
+          const base = match ?? href;
+          const active =
+            base === "/" ? pathname === "/" : pathname === base || pathname.startsWith(`${base}/`);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full py-2 transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "text-white/55 hover:text-white/80"
+              )}
+            >
+              <Icon className="size-5" strokeWidth={active ? 2.5 : 2} />
+              <span className="max-w-full truncate px-1 text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }

@@ -26,6 +26,7 @@ import { ESTADO_LABEL, calcularEstadoMembresia } from "@/features/membresias/est
 import type { EstadoMembresia } from "@/features/membresias/types";
 import { NotificationsBell } from "@/features/notificaciones/bell";
 import { getLatestWeightLog } from "@/features/perfil/api";
+import { ThemeToggle } from "@/features/theme/theme";
 import { getUpcomingBookingsForUser } from "@/features/reservas/api";
 import { toISODate } from "@/features/reservas/date-utils";
 import type { Booking, ClassSession } from "@/features/reservas/types";
@@ -115,7 +116,10 @@ export default function Home() {
               </h1>
             </div>
           </div>
-          <NotificationsBell />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationsBell />
+          </div>
         </header>
 
         <BentoGrid>

@@ -18,6 +18,7 @@ import { BentoGrid, BentoIcon, BentoStat, BentoTile } from "@/components/ui/bent
 import { Button } from "@/components/ui/button";
 import { signOutUser } from "@/features/auth/client-actions";
 import { NotificationsBell } from "@/features/notificaciones/bell";
+import { ThemeToggle } from "@/features/theme/theme";
 import { getAlertas, getClasesDeHoy, getMetricasDelMes, type Alertas, type ClaseDeHoy, type MetricasMes } from "./api";
 
 function AlertaRow({ href, label, count }: { href: string; label: string; count: number }) {
@@ -68,6 +69,7 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <NotificationsBell />
           <Button variant="ghost" size="icon" aria-label="Cerrar sesión" onClick={() => signOutUser()}>
             <LogOut className="size-4" />

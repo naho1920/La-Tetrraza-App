@@ -13,6 +13,7 @@ import { getSkill, listAchievementsForUser } from "@/features/medallas/api";
 import { NotificationsBell } from "@/features/notificaciones/bell";
 import { contarClasesAsistidas, getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { AvatarUploader } from "@/features/perfil/avatar-uploader";
+import { ThemeToggle } from "@/features/theme/theme";
 import { WeightChart } from "@/features/perfil/weight-chart";
 import { WeightLogForm } from "@/features/perfil/weight-log-form";
 
@@ -55,7 +56,10 @@ export default function PerfilPage() {
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
       <header className="flex items-center justify-between gap-3 py-2">
         <h1 className="font-heading text-xl font-semibold">Perfil</h1>
-        <NotificationsBell />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <NotificationsBell />
+        </div>
       </header>
 
       <BentoGrid>
