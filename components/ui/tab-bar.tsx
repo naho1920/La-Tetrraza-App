@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, CalendarDays, User, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
+import { Award, CalendarDays, Home, User, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,7 +18,7 @@ const TABS_ALUMNO: TabItem[] = [
   { href: "/horarios", label: "Horarios", icon: CalendarDays },
   { href: "/nutricion", label: "Nutrición", icon: UtensilsCrossed },
   { href: "/medallas", label: "Medallas", icon: Award },
-  { href: "/membresia", label: "Membresía", icon: Wallet },
+  { href: "/", label: "Inicio", icon: Home },
   { href: "/perfil", label: "Perfil", icon: User },
 ];
 
