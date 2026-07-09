@@ -130,3 +130,30 @@ No se encontraron páginas completas candidatas a Server Component sin rediseño
 | — | Migrar `medal-badge.tsx` a `next/image` (SVG, requiere `dangerouslyAllowSVG`) | Medio | Bajo-medio |
 
 Dime cuáles apruebas y en qué orden — cada uno va en su propio commit, con `npm run build` limpio antes de pasar al siguiente, siguiendo D.2/D.3 del plan.
+
+---
+
+## D.3 — Verificación
+
+Todos los puntos aprobados (1-8, salvo 5b descartado) se aplicaron, uno por commit, con `npm run build` limpio antes de pasar al siguiente. Resumen de lo verificado y lo que quedó pendiente:
+
+- [x] `npm run build` sin errores ni warnings nuevos — verificado después de cada uno de los 5 commits. El warning de `<img>` desapareció; no quedó ninguno nuevo.
+- [x] **First Load JS antes/después** (reemplaza el Lighthouse pedido en el plan — ver nota abajo):
+
+| Ruta | Antes (D.1) | Después (D.2) | Diferencia |
+|---|---|---|---|
+| `/` (Home) | 439 KB | 325 KB | **-114 KB (-26%)** |
+| `/estadisticas` | 460 KB | 300 KB | **-160 KB (-35%)** |
+| `/perfil` | 476 KB | 324 KB | **-152 KB (-32%)** |
+| `/alumnos/[uid]` | 455 KB | 302 KB | **-153 KB (-34%)** |
+| `/medallas` | 407 KB | 366 KB | -41 KB (-10%) |
+| `/horarios` | 322 KB | 328 KB | +6 KB (ver nota) |
+| `/membresia` | 320 KB | 320 KB | — |
+
+Nota sobre `/horarios`: subió unos KB porque antes compartía un chunk con rutas que ahora cargan menos código (el peso de un chunk compartido se redistribuye entre las rutas que quedan usándolo) — no es una regresión real, es redistribución esperada al aislar recharts/supabase-js en otras rutas.
+
+- [ ] **Lighthouse antes/después (móvil)**: no lo pude correr. Requiere navegar autenticada (login con Google) a Home/Horarios/Medallas, y no tengo credenciales reales de Firebase Auth para esta app — es la misma limitación que mencioné en cada tarea de esta sesión. La tabla de First Load JS de arriba cubre la parte de "tamaño de JS" que pedía este punto; Performance/LCP quedan sin medir.
+- [ ] **Smoke test manual** (login con Google → reservar clase → subir comprobante → vitrina de medallas → panel coach): mismo motivo, no pude iniciar sesión real. Sí verifiqué después de cada commit que el dev server arranca sin errores de consola/servidor y que las rutas sin sesión redirigen correctamente a `/login` sin crashear.
+- [x] **Reversión documentada**: el punto 5b (quitar `"use client"` de `admin-tab-bar.tsx`) sí rompió el build al probarlo — se revirtió de inmediato y quedó documentado arriba con el motivo exacto.
+
+**Para completar la verificación real te recomiendo**: correr tú misma (con tu sesión real) el recorrido de Home → Horarios → Medallas → Perfil una vez que despliegues estos cambios, e idealmente correr Lighthouse desde Chrome DevTools en esas mismas pantallas para confirmar la mejora de Performance/LCP que la reducción de JS debería traer.
