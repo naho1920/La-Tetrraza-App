@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AdminTabBar } from "@/components/ui/admin-tab-bar";
+import { ErrorState } from "@/components/ui/error-state";
 import { BentoGrid, BentoIcon, BentoStat, BentoTile } from "@/components/ui/bento";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { TabBar } from "@/components/ui/tab-bar";
@@ -48,17 +49,29 @@ export default function Home() {
   const [ultimoPeso, setUltimoPeso] = useState<number | null>(null);
   const [medallas, setMedallas] = useState<number | null>(null);
   const [estadoMembresia, setEstadoMembresia] = useState<EstadoMembresia | null>(null);
+  // TASK-069: estado de error para mostrar botón de reintento en lugar de
+  // datos vacíos silenciosos que parecen "no tienes nada" cuando en realidad
+  // falló la carga.
+  const [errorCarga, setErrorCarga] = useState(false);
+
+  function cargarDatosAlumno(uid: string) {
+    setErrorCarga(false);
+    Promise.all([
+      getUpcomingBookingsForUser(uid, toISODate(new Date())).then(setProximas),
+      getLatestWeightLog(uid).then((log) => setUltimoPeso(log?.pesoKg ?? null)),
+      listAchievementsForUser(uid).then((a) =>
+        setMedallas(a.filter((x) => x.estado === "validado").length),
+      ),
+      getMembershipForUser(uid).then((m) =>
+        setEstadoMembresia(m ? calcularEstadoMembresia(m.fechaFin) : null),
+      ),
+    ]).catch(() => setErrorCarga(true));
+  }
 
   useEffect(() => {
     if (status !== "ready" || userDoc?.rol !== "alumno") return;
-    getUpcomingBookingsForUser(userDoc.uid, toISODate(new Date())).then(setProximas);
-    getLatestWeightLog(userDoc.uid).then((log) => setUltimoPeso(log?.pesoKg ?? null));
-    listAchievementsForUser(userDoc.uid)
-      .then((a) => setMedallas(a.filter((x) => x.estado === "validado").length))
-      .catch(() => setMedallas(0));
-    getMembershipForUser(userDoc.uid)
-      .then((m) => setEstadoMembresia(m ? calcularEstadoMembresia(m.fechaFin) : null))
-      .catch(() => setEstadoMembresia(null));
+    cargarDatosAlumno(userDoc.uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, userDoc]);
 
   useEffect(() => {
@@ -132,6 +145,13 @@ export default function Home() {
             <NotificationsBell />
           </div>
         </header>
+
+        {errorCarga && (
+          <ErrorState
+            mensaje="No se pudieron cargar tus datos."
+            onReintentar={() => userDoc && cargarDatosAlumno(userDoc.uid)}
+          />
+        )}
 
         <BentoGrid>
           <BentoTile variant="dark" className="col-span-2 gap-3 p-5">

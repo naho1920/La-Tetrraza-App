@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { listActivatedUsers } from "@/features/admin/api";
 import {
   listAllSkillsAdmin,
@@ -35,7 +36,6 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   const [skillId, setSkillId] = useState("");
   const [nivel, setNivel] = useState("");
   const [otorgando, setOtorgando] = useState(false);
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   useEffect(() => {
     listActivatedUsers().then((users) => setAlumnos(users.filter((u) => u.rol === "alumno")));
@@ -47,11 +47,12 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   async function handleOtorgar() {
     if (!uid || !skillId || !nivel) return;
     setOtorgando(true);
-    setMensaje(null);
     try {
       await otorgarMedallaManual(adminUid, uid, skillId, nivel);
-      setMensaje("¡Medalla otorgada! El alumno la verá celebrada en su próxima visita.");
+      toast("¡Medalla otorgada! El alumno la verá celebrada en su próxima visita.");
       setNivel("");
+    } catch {
+      toast("No se pudo otorgar la medalla. Inténtalo de nuevo.", "error");
     } finally {
       setOtorgando(false);
     }
@@ -110,8 +111,6 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
           </Select>
         )}
 
-        {mensaje && <p className="text-sm text-success">{mensaje}</p>}
-
         <Button disabled={otorgando || !uid || !skillId || !nivel} onClick={handleOtorgar}>
           {otorgando ? "Otorgando…" : "Otorgar medalla"}
         </Button>
@@ -154,6 +153,33 @@ function useNombresAlumnos(uids: string[]) {
 function tituloMedalla(skill: Skill | undefined, nivel: string) {
   if (!skill) return "Medalla";
   return nivel === "base" ? skill.nombreMedalla : `${skill.nombreMedalla} — ${nivel}`;
+}
+
+/**
+ * TASK-063: muestra el umbral calculado para medallas de Fuerza con relativoABW.
+ * Formato: "declara 120 kg · umbral plata 97.5 kg ✅" o "❌" si no llega.
+ */
+function UmbralFuerza({ achievement, skill }: { achievement: Achievement; skill: Skill | undefined }) {
+  if (!skill?.relativoABW || achievement.pesoLevantadoKg == null) return null;
+  const multiplicadorStr = skill.hitos[achievement.nivel];
+  const multiplicador = parseFloat(multiplicadorStr ?? "0");
+  if (!multiplicador || !achievement.pesoAlReclamo) return (
+    <span className="text-xs text-muted-foreground">
+      Levantó {achievement.pesoLevantadoKg} kg (sin peso corporal registrado)
+    </span>
+  );
+  const umbral = Math.round(achievement.pesoAlReclamo * multiplicador * 10) / 10;
+  const cumple = achievement.pesoLevantadoKg >= umbral;
+  return (
+    <span className="text-xs">
+      {achievement.pesoLevantadoKg} kg · umbral {achievement.nivel}{" "}
+      {umbral} kg{" "}
+      <span className={cumple ? "text-success" : "text-destructive"}>
+        {cumple ? "✅" : "❌"}
+      </span>
+      {" "}(PC: {achievement.pesoAlReclamo} kg)
+    </span>
+  );
 }
 
 export default function AdminMedallasPage() {
@@ -224,13 +250,13 @@ export default function AdminMedallasPage() {
               {lista.map((a) => (
                 <li key={a.id} className="flex flex-col gap-2 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div>
+                    <div className="flex flex-col gap-0.5">
                       <p className="text-sm font-medium">{nombres[a.uid] ?? "…"}</p>
                       <p className="text-sm text-muted-foreground">
                         {tituloMedalla(skills[a.skillId], a.nivel)}
-                        {a.pesoLevantadoKg != null && ` — ${a.pesoLevantadoKg} kg`}
                         {a.tiempoLogrado && ` — ${a.tiempoLogrado}`}
                       </p>
+                      <UmbralFuerza achievement={a} skill={skills[a.skillId]} />
                     </div>
                     <Badge>{a.fechaLogro}</Badge>
                   </div>

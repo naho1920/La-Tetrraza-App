@@ -35,6 +35,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // TASK-072: viewport-fit=cover permite usar env(safe-area-inset-*) en CSS
+  // para que el contenido no quede oculto bajo el notch / Dynamic Island en
+  // modo standalone (PWA instalada en iPhone).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F4F4F6" },
     { media: "(prefers-color-scheme: dark)", color: "#0C0C0E" },

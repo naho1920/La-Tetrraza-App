@@ -43,6 +43,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El PDF no puede pesar más de 10 MB." }, { status: 400 });
   }
 
+  // TASK-059: verificar que el formulario pertenezca al alumno indicado antes
+  // de asociar el plan, para evitar que un error humano vincule un plan al
+  // alumno equivocado.
+  const formSnap = await adminDb.collection("nutritionForms").doc(formId).get();
+  if (!formSnap.exists || formSnap.data()?.uid !== uid) {
+    return NextResponse.json(
+      { error: "Formulario no encontrado o no pertenece a ese alumno." },
+      { status: 404 },
+    );
+  }
+
   const nombreLimpio = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
   const archivoPath = `nutrition-plans/${uid}/${Date.now()}-${nombreLimpio}`;
 

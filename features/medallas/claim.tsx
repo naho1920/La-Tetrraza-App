@@ -56,6 +56,9 @@ export function ClaimAchievementDialog({
   const [fecha, setFecha] = useState(toISODate(new Date()));
   const [archivo, setArchivo] = useState<File | null>(null);
   const [pesoLevantado, setPesoLevantado] = useState("");
+  // TASK-063: peso corporal del alumno al momento del reclamo para que la
+  // admin calcule el umbral real (multiplicador × peso corporal).
+  const [pesoAlReclamo, setPesoAlReclamo] = useState("");
   const [tiempoLogrado, setTiempoLogrado] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,8 @@ export function ClaimAchievementDialog({
         fecha,
         videoPath,
         pideKg && pesoLevantado ? Number(pesoLevantado) : null,
-        pideTiempo && tiempoLogrado ? tiempoLogrado : null
+        pideKg && pesoAlReclamo ? Number(pesoAlReclamo) : null,
+        pideTiempo && tiempoLogrado ? tiempoLogrado : null,
       );
       onClaimed();
     } catch (err) {
@@ -114,20 +118,36 @@ export function ClaimAchievementDialog({
           </div>
 
           {pideKg && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="peso-logro">¿Cuánto alzaste? (kg)</Label>
-              <Input
-                id="peso-logro"
-                type="number"
-                inputMode="decimal"
-                step="0.5"
-                min="0"
-                placeholder="Ej. 97.5"
-                value={pesoLevantado}
-                onChange={(e) => setPesoLevantado(e.target.value)}
-                required
-              />
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="peso-corporal">Tu peso corporal actual (kg)</Label>
+                <Input
+                  id="peso-corporal"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  min="0"
+                  placeholder="Ej. 65"
+                  value={pesoAlReclamo}
+                  onChange={(e) => setPesoAlReclamo(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="peso-logro">¿Cuánto alzaste? (kg)</Label>
+                <Input
+                  id="peso-logro"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  min="0"
+                  placeholder="Ej. 97.5"
+                  value={pesoLevantado}
+                  onChange={(e) => setPesoLevantado(e.target.value)}
+                  required
+                />
+              </div>
+            </>
           )}
 
           {pideTiempo && (
@@ -170,7 +190,7 @@ export function ClaimAchievementDialog({
           <Button
             type="submit"
             className="h-11 text-base"
-            disabled={enviando || !seleccion || (pideKg && !pesoLevantado)}
+            disabled={enviando || !seleccion || (pideKg && (!pesoLevantado || !pesoAlReclamo))}
           >
             {enviando ? "Enviando…" : "Registrar logro"}
           </Button>

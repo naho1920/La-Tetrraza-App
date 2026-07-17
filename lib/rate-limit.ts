@@ -14,7 +14,7 @@ interface Ventana {
 const ventanas = new Map<string, Ventana>();
 
 const VENTANA_MS = 60_000;
-const MAX_ENTRADAS = 5_000; // tope de claves para no crecer sin límite
+const MAX_ENTRADAS = 5_000;
 
 /**
  * Devuelve `true` si la clave (uid o IP) superó `max` peticiones por minuto.
@@ -22,7 +22,18 @@ const MAX_ENTRADAS = 5_000; // tope de claves para no crecer sin límite
 export function excedeLimite(clave: string, max: number): boolean {
   const ahora = Date.now();
 
-  if (ventanas.size > MAX_ENTRADAS) ventanas.clear();
+  // TASK-057: evicción LRU en lugar de clear() global — borrar solo las
+  // entradas más antiguas (20% del mapa) para que los contadores del resto
+  // de usuarios no se reseteen junto con las claves que ya no importan.
+  if (ventanas.size >= MAX_ENTRADAS) {
+    const objetivo = Math.floor(MAX_ENTRADAS * 0.8);
+    const iter = ventanas.keys();
+    while (ventanas.size > objetivo) {
+      const { value, done } = iter.next();
+      if (done || value === undefined) break;
+      ventanas.delete(value);
+    }
+  }
 
   const ventana = ventanas.get(clave) ?? { timestamps: [] };
   ventana.timestamps = ventana.timestamps.filter((t) => ahora - t < VENTANA_MS);

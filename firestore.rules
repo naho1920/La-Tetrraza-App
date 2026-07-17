@@ -34,10 +34,19 @@ service cloud.firestore {
       return request.time >= inicioSesionUTC(session);
     }
 
+    // TASK-050: valida que la sesión sea reservable (existe, programada, no comenzó, hay cupo).
+    // Centraliza las 3 condiciones de negocio en una sola función para no repetir get().
+    function sessionReservable(sessionId) {
+      let s = get(/databases/$(database)/documents/classSessions/$(sessionId)).data;
+      return s.estado == 'programada' && !haComenzado(s) && s.cuposOcupados < s.capacidad;
+    }
+
     // Lista de acceso que gestiona la admin. Un alumno solo puede leer su
     // propia entrada (para saber si ya fue aprobado); la admin gestiona todo.
+    // TASK-058: normalizar el email del token a minúsculas para evitar
+    // desajuste de capitalización entre el token de Google y el id del doc.
     match /approvedEmails/{email} {
-      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+      allow get: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email);
       allow list: if isAdmin();
       allow write: if isAdmin();
     }
@@ -49,7 +58,7 @@ service cloud.firestore {
       allow get: if isAdmin() || isOwner(uid);
       allow list: if isAdmin();
       allow create: if isOwner(uid)
-        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email == request.auth.token.email.lower()
         && request.resource.data.estado == 'pendiente';
       allow update, delete: if isAdmin();
     }
@@ -59,11 +68,12 @@ service cloud.firestore {
 
       // El propio alumno crea su doc al primer login aprobado, siempre
       // como "alumno" y ya aprobado — nunca puede auto-asignarse admin.
+      // TASK-058: comparar con el email normalizado a minúsculas.
       allow create: if isOwner(uid)
-        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email == request.auth.token.email.lower()
         && request.resource.data.rol == 'alumno'
         && request.resource.data.aprobado == true
-        && exists(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email));
+        && exists(/databases/$(database)/documents/approvedEmails/$(request.auth.token.email.lower()));
 
       // El dueño edita su perfil pero nunca sus propios rol/aprobado.
       allow update: if isAdmin()
@@ -93,12 +103,23 @@ service cloud.firestore {
       // `cuposOcupados` en 1 (reservar o cancelar su propio cupo) — nunca
       // tocar capacidad, estado ni cualquier otro campo, y nunca sobre una
       // sesión que ya comenzó (reserva y cancelación quedan bloqueadas).
+      // TASK-049: añadir rango [0, capacidad] y vincular el cambio al
+      // booking del propio uid para evitar que alguien llene una clase sin
+      // reservar o que reste el cupo de una reserva que no tiene.
       allow update: if isAdmin()
         || (isApproved()
             && !haComenzado(resource.data)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cuposOcupados'])
-            && (request.resource.data.cuposOcupados == resource.data.cuposOcupados + 1
-                || request.resource.data.cuposOcupados == resource.data.cuposOcupados - 1));
+            && request.resource.data.cuposOcupados >= 0
+            && request.resource.data.cuposOcupados <= resource.data.capacidad
+            && (
+              // Reservar: el alumno sube 1 y todavía no tiene booking en esta sesión.
+              (request.resource.data.cuposOcupados == resource.data.cuposOcupados + 1
+               && !exists(/databases/$(database)/documents/bookings/$(id + '_' + request.auth.uid)))
+              // Cancelar: el alumno baja 1 y tiene booking en esta sesión.
+              || (request.resource.data.cuposOcupados == resource.data.cuposOcupados - 1
+                  && exists(/databases/$(database)/documents/bookings/$(id + '_' + request.auth.uid)))
+            ));
     }
 
     match /bookings/{id} {
@@ -107,12 +128,14 @@ service cloud.firestore {
       // propia reserva, así que users/ sigue siendo privado).
       allow read: if isAdmin() || isApproved();
 
-      // El id compuesto "sessionId_uid" hace imposible duplicar la reserva;
-      // solo se puede crear como "reservado" y a nombre de uno mismo.
+      // TASK-050: el id compuesto "sessionId_uid" evita duplicados;
+      // además se valida contra el documento de la sesión: debe existir,
+      // estar programada, no haber comenzado y tener cupo disponible.
       allow create: if isApproved()
         && request.resource.data.uid == request.auth.uid
         && id == request.resource.data.sessionId + '_' + request.auth.uid
-        && request.resource.data.estado == 'reservado';
+        && request.resource.data.estado == 'reservado'
+        && sessionReservable(request.resource.data.sessionId);
 
       // El alumno solo puede cancelar su propia reserva (nunca tocar
       // `asistio`, que es exclusivo de la admin).
@@ -132,11 +155,15 @@ service cloud.firestore {
 
       // El alumno solo edita su propio formulario mientras la admin no lo
       // haya empezado a revisar; una vez en revisión, solo la admin escribe.
+      // TASK-052: whitelist de campos que el alumno puede modificar para que
+      // no pueda mover su propio `estado` y romper la máquina de estados.
       allow update: if isAdmin()
         || (isApproved()
             && resource.data.uid == request.auth.uid
             && resource.data.estado == 'pendiente'
-            && request.resource.data.uid == resource.data.uid);
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.estado == resource.data.estado
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['respuestas', 'version', 'enviado']));
 
       allow delete: if isAdmin();
     }
@@ -157,10 +184,16 @@ service cloud.firestore {
 
       // La admin puede otorgar medallas directamente (ya validadas), por
       // ejemplo las de Constancia que ya no calcula una Cloud Function.
+      // TASK-053: whitelist de campos que el alumno puede enviar al reclamar
+      // un logro; se valida además que el skillId exista en la colección.
+      // Así no puede sembrar skillIds inventados ni campos admin (validadoPor,
+      // validadoAt, pinEntregado, celebrado).
       allow create: if isAdmin()
         || (isApproved()
             && request.resource.data.uid == request.auth.uid
-            && request.resource.data.estado == 'pendiente');
+            && request.resource.data.estado == 'pendiente'
+            && request.resource.data.keys().hasOnly(['uid', 'skillId', 'nivel', 'fechaLogro', 'videoPath', 'pesoLevantadoKg', 'pesoAlReclamo', 'tiempoLogrado', 'estado'])
+            && exists(/databases/$(database)/documents/skills/$(request.resource.data.skillId)));
 
       // Mientras sigue pendiente, el dueño puede corregir nivel/fecha/video;
       // en cualquier estado puede marcar que ya vio la celebración. Todo lo

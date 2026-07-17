@@ -9,8 +9,10 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-primary-subtle text-primary-dark dark:bg-primary/20 dark:text-primary-light",
-        success: "bg-success/15 text-success",
-        warning: "bg-warning/15 text-warning",
+        // TASK-077: usar la variante dark del token para que el texto tenga
+        // al menos 4.5:1 de contraste sobre el fondo semitransparente del badge.
+        success: "bg-success/15 text-success-dark",
+        warning: "bg-warning/15 text-warning-dark",
         destructive: "bg-destructive/15 text-destructive",
         outline: "border-border text-foreground",
       },

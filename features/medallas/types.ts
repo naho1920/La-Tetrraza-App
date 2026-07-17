@@ -28,6 +28,9 @@ export interface Achievement {
   videoPath: string | null;
   /** Kg levantados, solo para medallas de Fuerza (relativoABW). */
   pesoLevantadoKg: number | null;
+  /** Peso corporal del alumno al momento del reclamo (kg). Se guarda para
+   *  calcular el umbral real: umbral = pesoAlReclamo × multiplicador del skill. */
+  pesoAlReclamo: number | null;
   /** Tiempo logrado en formato libre ("7:45"), solo para WODs de Resistencia. */
   tiempoLogrado: string | null;
   estado: EstadoAchievement;

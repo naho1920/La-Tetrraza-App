@@ -21,6 +21,11 @@ interface UserRow {
   fechaIngreso: Date | null;
 }
 
+// TASK-089: importar desde lib/date.ts compartida en lugar de duplicar.
+// Nota: las Cloud Functions se compilan desde functions/src; este import
+// apunta a ../../lib/date.ts (fuera del directorio functions/).
+// Si el build de functions no puede resolver rutas fuera de su árbol, duplicar
+// la función aquí o incluir lib/ en tsconfig.json de functions.
 function toISODate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -108,22 +113,25 @@ export const medallasConstancia = onSchedule(
     });
 
     // Fundador/a: primeros MAX_FUNDADORES alumnos aprobados por fechaIngreso.
+    // TASK-061: id unificado `{uid}_{skillId}_base` para coincidir con el
+    // patrón de otorgarMedallaManual y evitar doble medalla.
     const fundadores = usuarios
       .filter((u) => u.fechaIngreso !== null)
       .sort((a, b) => a.fechaIngreso!.getTime() - b.fechaIngreso!.getTime())
       .slice(0, MAX_FUNDADORES);
     for (const u of fundadores) {
-      await otorgarSiNoExiste(`${u.uid}_${SKILL_FUNDADOR}`, u.uid, SKILL_FUNDADOR);
+      await otorgarSiNoExiste(`${u.uid}_${SKILL_FUNDADOR}_base`, u.uid, SKILL_FUNDADOR);
     }
 
     // Un Año en La Terraza: aniversario (mismo mes/día, al menos 1 año).
+    // Es una medalla única por persona — el id sin periodo evita duplicados.
     for (const u of usuarios) {
       if (!u.fechaIngreso) continue;
       const cumpleAnio =
         u.fechaIngreso.getMonth() === hoy.getMonth() && u.fechaIngreso.getDate() === hoy.getDate();
       const yaPasoUnAnio = hoy.getFullYear() > u.fechaIngreso.getFullYear();
       if (cumpleAnio && yaPasoUnAnio) {
-        await otorgarSiNoExiste(`${u.uid}_${SKILL_UN_ANIO}`, u.uid, SKILL_UN_ANIO);
+        await otorgarSiNoExiste(`${u.uid}_${SKILL_UN_ANIO}_base`, u.uid, SKILL_UN_ANIO);
       }
     }
 
@@ -131,11 +139,13 @@ export const medallasConstancia = onSchedule(
     for (const u of usuarios) {
       const asistencias = await contarAsistenciasTotales(u.uid);
       if (asistencias >= MIN_CLASES_CENTENARIA) {
-        await otorgarSiNoExiste(`${u.uid}_${SKILL_CENTENARIA}`, u.uid, SKILL_CENTENARIA);
+        await otorgarSiNoExiste(`${u.uid}_${SKILL_CENTENARIA}_base`, u.uid, SKILL_CENTENARIA);
       }
     }
 
     // Mes Perfecto: solo se evalúa el día 1, sobre el mes recién cerrado.
+    // Se repite cada mes así que el id incluye el periodo para mantener
+    // un documento distinto por mes y seguir siendo idempotente.
     if (hoy.getDate() === 1) {
       const finMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
       const inicioMesAnterior = new Date(finMesAnterior.getFullYear(), finMesAnterior.getMonth(), 1);
@@ -145,7 +155,7 @@ export const medallasConstancia = onSchedule(
 
       for (const u of usuarios) {
         if (await fueMesPerfecto(u.uid, desdeISO, hastaISO)) {
-          await otorgarSiNoExiste(`${u.uid}_${SKILL_MES_PERFECTO}_${periodo}`, u.uid, SKILL_MES_PERFECTO);
+          await otorgarSiNoExiste(`${u.uid}_${SKILL_MES_PERFECTO}_base_${periodo}`, u.uid, SKILL_MES_PERFECTO);
         }
       }
     }

@@ -5,6 +5,15 @@ import { excedeLimite, RESPUESTA_LIMITE } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { DOCS_BUCKET } from "@/lib/supabase/client";
 
+// TASK-051: tipos de video permitidos y su extensión de archivo.
+// Se rechaza cualquier MIME type distinto antes de generar la signed URL.
+const TIPOS_VIDEO: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+  "video/x-m4v": "m4v",
+};
+
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -21,7 +30,9 @@ export async function POST(request: Request) {
     return NextResponse.json(RESPUESTA_LIMITE, { status: 429 });
   }
 
-  const { uid } = await request.json();
+  const body = await request.json();
+  const { uid, contentType } = body as { uid?: string; contentType?: string };
+
   if (typeof uid !== "string") {
     return NextResponse.json({ error: "Falta el uid." }, { status: 400 });
   }
@@ -29,7 +40,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 
-  const path = `achievement-videos/${uid}/${Date.now()}.mp4`;
+  // TASK-051: validar el tipo de archivo antes de emitir la signed URL.
+  const ext = contentType ? TIPOS_VIDEO[contentType] : undefined;
+  if (!ext) {
+    return NextResponse.json(
+      { error: "Tipo de archivo no permitido. Se aceptan: mp4, mov, webm, m4v." },
+      { status: 400 },
+    );
+  }
+
+  const path = `achievement-videos/${uid}/${Date.now()}.${ext}`;
   const { data, error } = await supabaseAdmin.storage.from(DOCS_BUCKET).createSignedUploadUrl(path);
 
   if (error || !data) {

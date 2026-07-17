@@ -34,6 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setUserDoc(null);
       setStatus("signed-out");
+      // TASK-054: eliminar la cookie de sesión al cerrar sesión para que el
+      // middleware deje de conceder acceso a las rutas protegidas.
+      document.cookie = "__session=; path=/; max-age=0; SameSite=Strict";
       return;
     }
 
@@ -42,8 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!doc) {
       setUserDoc(null);
       setStatus("not-approved");
+      document.cookie = "__session=; path=/; max-age=0; SameSite=Strict";
       return;
     }
+
+    // TASK-054: escribir el ID token en una cookie para que el middleware de
+    // Next.js pueda verificar la autenticación y el claim `admin` sin
+    // firebase-admin (que no corre en Edge runtime). El token expira en 1 h;
+    // Firebase dispara onAuthStateChanged antes de que expire para renovarlo.
+    const idToken = await firebaseUser.getIdToken();
+    document.cookie = `__session=${idToken}; path=/; max-age=3600; SameSite=Strict`;
 
     setUserDoc(doc);
     setStatus("ready");

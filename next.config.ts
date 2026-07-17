@@ -39,6 +39,28 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // Permisos del navegador que la app no necesita.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // TASK-055: HSTS — forzar HTTPS durante 2 años, incluir subdominios.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          // TASK-055: Content Security Policy global.
+          // 'unsafe-inline' en script-src es necesario para Next.js inline scripts;
+          // 'unsafe-eval' solo en dev (Serwist HMR). En producción Next.js inyecta
+          // nonces automáticamente si se configura, pero se deja permisivo para
+          // no romper la app mientras se ajusta gradualmente.
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.supabase.co",
+              "connect-src 'self' https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com wss://*.firebaseio.com https://*.supabase.co",
+              "font-src 'self'",
+              "frame-src https://accounts.google.com https://*.firebaseapp.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
         ],
       },
     ];
