@@ -40,7 +40,6 @@ export default function Home() {
   const [errorCarga, setErrorCarga] = useState(false);
 
   function cargarDatosAlumno(uid: string) {
-    setErrorCarga(false);
     Promise.all([
       getUpcomingBookingsForUser(uid, toISODate(new Date())).then(setProximas),
       getLatestWeightLog(uid).then((log) => setUltimoPeso(log?.pesoKg ?? null)),
@@ -50,13 +49,14 @@ export default function Home() {
       getMembershipForUser(uid).then((m) =>
         setEstadoMembresia(m ? calcularEstadoMembresia(m.fechaFin) : null),
       ),
-    ]).catch(() => setErrorCarga(true));
+    ])
+      .then(() => setErrorCarga(false))
+      .catch(() => setErrorCarga(true));
   }
 
   useEffect(() => {
     if (status !== "ready" || userDoc?.rol !== "alumno") return;
     cargarDatosAlumno(userDoc.uid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, userDoc]);
 
   const debeVerBienvenida = necesitaBienvenida(userDoc);

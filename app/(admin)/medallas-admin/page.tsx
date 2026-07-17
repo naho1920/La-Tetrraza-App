@@ -163,7 +163,6 @@ function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    setCargando(true);
     listAchievementsConPeso()
       .then(setAchievements)
       .finally(() => setCargando(false));
