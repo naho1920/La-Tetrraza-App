@@ -240,6 +240,42 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Fase 6 — Diario de rendimiento.
+
+    // El coach define las métricas; los alumnos solo leen.
+    match /trackingMetrics/{id} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // Cada alumno crea y lee sus propios registros de actividad.
+    // Whitelist estricta: no puede tocar campos de otros ni inventar metricIds.
+    match /activityLogs/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+
+      allow create: if isApproved()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'metricId', 'valor', 'valorDisplay', 'fecha', 'nota', 'creadoAt'])
+        && exists(/databases/$(database)/documents/trackingMetrics/$(request.resource.data.metricId));
+
+      allow update, delete: if isAdmin();
+    }
+
+    // Logros automáticos del diario. El alumno los crea al cruzar un umbral;
+    // el ID determinístico {uid}_{metricId}_{nivel} previene duplicados vía setDoc.
+    match /diarioAchievements/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin()
+        || (isApproved()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.keys().hasOnly(['uid', 'metricId', 'metricNombre', 'nivel', 'valor', 'valorDisplay', 'fecha', 'creadoAt'])
+            && request.resource.data.nivel in ['bronce', 'plata', 'oro']
+            && exists(/databases/$(database)/documents/trackingMetrics/$(request.resource.data.metricId)));
+
+      allow update, delete: if isAdmin();
+    }
+
     // Todavía no hay más colecciones activas: se agregan rules por fase,
     // junto con cada feature (ver roadmap-la-terraza.md).
     match /{document=**} {

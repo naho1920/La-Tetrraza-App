@@ -355,6 +355,9 @@ export default function AdminMedallasPage() {
         <Button render={<Link href="/medallas-admin/catalogo" />} size="sm" variant="ghost">
           Catálogo
         </Button>
+        <Button render={<Link href="/diario-admin" />} size="sm" variant="ghost">
+          Diario
+        </Button>
       </div>
 
       <Card>

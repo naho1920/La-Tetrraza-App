@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, CalendarCheck, ChevronRight, CreditCard, Scale, UserPen } from "lucide-react";
+import { Award, BookOpen, CalendarCheck, ChevronRight, CreditCard, Scale, UserPen } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
 import { getSkill, listAchievementsForUser } from "@/features/medallas/api";
+import { listDiarioAchievementsForUser } from "@/features/diario/api";
 import { NotificationsBell } from "@/features/notificaciones/bell";
 import { contarClasesAsistidas, getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { AvatarUploader } from "@/features/perfil/avatar-uploader";
@@ -28,11 +29,15 @@ export default function PerfilPage() {
   const [pesoLogs, setPesoLogs] = useState<WeightLog[]>([]);
   const [clasesAsistidas, setClasesAsistidas] = useState<number | null>(null);
   const [ultimaMedalla, setUltimaMedalla] = useState<string | null>(null);
+  const [logrosCount, setLogrosCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!userDoc) return;
     getWeightLogs(userDoc.uid).then(setPesoLogs);
     contarClasesAsistidas(userDoc.uid).then(setClasesAsistidas).catch(() => setClasesAsistidas(0));
+    listDiarioAchievementsForUser(userDoc.uid)
+      .then((a) => setLogrosCount(a.length))
+      .catch(() => setLogrosCount(0));
 
     listAchievementsForUser(userDoc.uid)
       .then(async (achievements) => {
@@ -96,7 +101,7 @@ export default function PerfilPage() {
           <BentoStat valor={ultimoPeso ? `${ultimoPeso} kg` : "—"} label="Peso actual" />
         </BentoTile>
 
-        <BentoTile variant="accent">
+        <BentoTile href="/medallas" variant="accent">
           <BentoIcon icon={Award} variant="accent" />
           <BentoStat
             variant="accent"
@@ -110,6 +115,14 @@ export default function PerfilPage() {
           <BentoStat
             valor={clasesAsistidas === null ? "…" : clasesAsistidas}
             label="Clases asistidas"
+          />
+        </BentoTile>
+
+        <BentoTile href="/diario">
+          <BentoIcon icon={BookOpen} />
+          <BentoStat
+            valor={logrosCount === null ? "…" : logrosCount}
+            label="Logros diario"
           />
         </BentoTile>
 
