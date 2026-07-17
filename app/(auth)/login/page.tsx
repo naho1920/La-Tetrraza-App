@@ -68,7 +68,9 @@ export default function LoginPage() {
   useEffect(() => {
     getGoogleRedirectResult().catch((err) => {
       console.error("Google redirect error:", err);
-      setError(authErrorMessage(err));
+      // Mostrar el código real temporalmente para diagnóstico
+      const code = err?.code ?? String(err);
+      setError(`[${code}] ${authErrorMessage(err)}`);
     });
   }, []);
 
