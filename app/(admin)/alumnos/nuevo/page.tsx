@@ -11,9 +11,13 @@ import { Label } from "@/components/ui/label";
 import {
   type ApprovedEmail,
   addApprovedEmail,
+  aprobarSolicitud,
   listActivatedUsers,
   listApprovedEmails,
+  listSolicitudesPendientes,
+  rechazarSolicitud,
 } from "@/features/admin/api";
+import type { AccessRequest } from "@/features/auth/approval";
 import type { UserDoc } from "@/features/auth/types";
 
 export default function NuevoAlumnoPage() {
@@ -24,6 +28,9 @@ export default function NuevoAlumnoPage() {
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [solicitudes, setSolicitudes] = useState<AccessRequest[]>([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
+  const [procesandoUid, setProcesandoUid] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -39,18 +46,30 @@ export default function NuevoAlumnoPage() {
     }
   }
 
+  async function loadSolicitudes() {
+    setLoadingSolicitudes(true);
+    try {
+      setSolicitudes(await listSolicitudesPendientes());
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
 
     async function load() {
-      const [approvedList, userList] = await Promise.all([
+      const [approvedList, userList, solicitudesList] = await Promise.all([
         listApprovedEmails(),
         listActivatedUsers(),
+        listSolicitudesPendientes(),
       ]);
       if (ignore) return;
       setApproved(approvedList);
       setUsers(userList);
+      setSolicitudes(solicitudesList);
       setLoading(false);
+      setLoadingSolicitudes(false);
     }
 
     void load();
@@ -58,6 +77,26 @@ export default function NuevoAlumnoPage() {
       ignore = true;
     };
   }, []);
+
+  async function handleAprobar(solicitud: AccessRequest) {
+    setProcesandoUid(solicitud.uid);
+    try {
+      await aprobarSolicitud(solicitud);
+      await Promise.all([loadSolicitudes(), loadData()]);
+    } finally {
+      setProcesandoUid(null);
+    }
+  }
+
+  async function handleRechazar(uid: string) {
+    setProcesandoUid(uid);
+    try {
+      await rechazarSolicitud(uid);
+      await loadSolicitudes();
+    } finally {
+      setProcesandoUid(null);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,6 +123,52 @@ export default function NuevoAlumnoPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+      {(loadingSolicitudes || solicitudes.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Solicitudes pendientes ({solicitudes.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {loadingSolicitudes ? (
+              <p className="text-sm text-muted-foreground">Cargando…</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border">
+                {solicitudes.map((solicitud) => (
+                  <li
+                    key={solicitud.uid}
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <span className="min-w-0 truncate text-sm">
+                      {solicitud.nombre}
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {solicitud.email}
+                      </span>
+                    </span>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={procesandoUid === solicitud.uid}
+                        onClick={() => handleRechazar(solicitud.uid)}
+                      >
+                        Rechazar
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={procesandoUid === solicitud.uid}
+                        onClick={() => handleAprobar(solicitud)}
+                      >
+                        Aprobar
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Agregar alumno</CardTitle>
