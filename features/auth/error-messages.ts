@@ -8,6 +8,8 @@ const MESSAGES: Record<string, string> = {
   "auth/email-already-in-use": "Ya existe una cuenta con ese correo.",
   "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
   "auth/popup-closed-by-user": "Cerraste la ventana antes de terminar.",
+  "auth/popup-blocked": "El navegador bloqueó la ventana. Intenta de nuevo.",
+  "auth/cancelled-popup-request": "Operación cancelada. Intenta de nuevo.",
   "auth/too-many-requests": "Demasiados intentos. Espera unos minutos e intenta de nuevo.",
   "auth/network-request-failed": "Revisa tu conexión a internet e intenta de nuevo.",
 };

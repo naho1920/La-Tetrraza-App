@@ -1,15 +1,20 @@
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 
 import { auth, googleProvider } from "@/lib/firebase/client";
 
 export function signInWithGoogle() {
-  return signInWithPopup(auth, googleProvider);
+  return signInWithRedirect(auth, googleProvider);
+}
+
+export function getGoogleRedirectResult() {
+  return getRedirectResult(auth);
 }
 
 export function signInWithEmailPassword(email: string, password: string) {
