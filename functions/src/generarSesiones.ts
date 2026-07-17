@@ -15,6 +15,8 @@ interface ClassTemplateData {
   activa: boolean;
 }
 
+// Duplicado local necesario: functions/ es un workspace separado y no puede
+// resolver rutas @/ ni imports fuera de su árbol de compilación.
 function toISODate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

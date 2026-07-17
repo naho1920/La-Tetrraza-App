@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Award } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -242,9 +244,14 @@ export default function AdminMedallasPage() {
       <Card>
         <CardContent>
           {lista.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              {vista === "pendientes" ? "No hay logros por validar." : "No hay pines pendientes de entregar."}
-            </p>
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <Award className="size-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm text-muted-foreground">
+                {vista === "pendientes" ? "No hay logros por validar." : "No hay pines pendientes de entregar."}
+              </p>
+            </div>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {lista.map((a) => (

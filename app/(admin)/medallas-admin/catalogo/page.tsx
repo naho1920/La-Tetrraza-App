@@ -106,9 +106,9 @@ function SkillForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label>Pilar</Label>
+          <Label htmlFor="pilar-select">Pilar</Label>
           <Select value={form.pilar} onValueChange={(v) => set("pilar", (v ?? "fuerza") as Pilar)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="pilar-select" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -121,9 +121,9 @@ function SkillForm({
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Tipo</Label>
+          <Label htmlFor="tipo-select">Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => set("tipo", (v ?? "insignia") as TipoSkill)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="tipo-select" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { CreditCard, Receipt } from "lucide-react";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +66,12 @@ export default function MembresiaPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {!membership ? (
-            <p className="text-sm text-muted-foreground">
-              Todavía no tienes una membresía asignada. Habla con tu coach.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <CreditCard className="size-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm text-muted-foreground">Todavía no tienes una membresía asignada. Habla con tu coach.</p>
+            </div>
           ) : (
             <>
               <div className="flex items-center justify-between">
@@ -130,7 +135,12 @@ export default function MembresiaPage() {
         </CardHeader>
         <CardContent>
           {pagos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todavía no hay pagos registrados.</p>
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <Receipt className="size-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm text-muted-foreground">Todavía no hay pagos registrados.</p>
+            </div>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {pagos.map((pago) => (

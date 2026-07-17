@@ -134,9 +134,9 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
           )}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Sexo</Label>
+          <Label htmlFor="sexo-select">Sexo</Label>
           <Select value={sexo} onValueChange={(v) => setSexo(v as Sexo)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="sexo-select" className="w-full">
               <SelectValue placeholder="Selecciona" />
             </SelectTrigger>
             <SelectContent>
@@ -221,9 +221,9 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Meta principal</Label>
+        <Label htmlFor="meta-select">Meta principal</Label>
         <Select value={meta} onValueChange={(v) => setMeta(v as Meta)}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger id="meta-select" className="w-full">
             <SelectValue placeholder="Selecciona tu meta" />
           </SelectTrigger>
           <SelectContent>

@@ -56,6 +56,8 @@ export function ClassDetailDialog({
   const [inscritos, setInscritos] = useState<BookingConAlumno[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // TASK-086: acción pendiente para UI optimista — se resuelve cuando el server confirma.
+  const [pendingAction, setPendingAction] = useState<"reservar" | "cancelar" | null>(null);
 
   const cargarInscritos = useCallback(() => {
     listBookingsForSession(session.id).then(setInscritos).catch(() => setInscritos([]));
@@ -67,9 +69,19 @@ export function ClassDetailDialog({
 
   if (!userDoc) return null;
 
+  // Valores optimistas: reflejan el estado esperado mientras la API responde.
+  const optimisticReservada =
+    pendingAction === "reservar" ? true : pendingAction === "cancelar" ? false : reservada;
+  const optimisticCupos =
+    pendingAction === "reservar"
+      ? session.cuposOcupados + 1
+      : pendingAction === "cancelar"
+        ? session.cuposOcupados - 1
+        : session.cuposOcupados;
+
   const cancelada = session.estado === "cancelada";
   const pasada = esClasePasada(session);
-  const lleno = session.cuposOcupados >= session.capacidad;
+  const lleno = optimisticCupos >= session.capacidad;
   const cancelableAhora = puedeCancelar(session);
   const fechaLegible = new Date(`${session.fecha}T00:00:00`).toLocaleDateString("es-EC", {
     weekday: "long",
@@ -81,6 +93,23 @@ export function ClassDetailDialog({
     if (!userDoc) return;
     setError(null);
     setLoading(true);
+    const accion = reservada ? "cancelar" : "reservar";
+    setPendingAction(accion);
+    // Optimistic: add/remove user from inscritos list immediately.
+    const bookingOptimista = {
+      id: `${session.id}_${userDoc.uid}`,
+      uid: userDoc.uid,
+      sessionId: session.id,
+      estado: "reservado" as const,
+      asistio: null,
+      creadoAt: null,
+    };
+    const alumnoOptimista = { uid: userDoc.uid, nombre: userDoc.nombre, foto: userDoc.foto ?? null };
+    setInscritos((prev) => {
+      if (!prev) return prev;
+      if (accion === "cancelar") return prev.filter((b) => b.booking.uid !== userDoc.uid);
+      return [...prev, { booking: bookingOptimista, alumno: alumnoOptimista }];
+    });
     try {
       if (reservada) {
         await cancelarReserva(session.id, userDoc.uid);
@@ -92,9 +121,17 @@ export function ClassDetailDialog({
       }
       cargarInscritos();
     } catch (err) {
+      // Rollback optimistic state on failure.
+      setPendingAction(null);
+      setInscritos((prev) => {
+        if (!prev) return prev;
+        if (accion === "cancelar") return [...prev, { booking: bookingOptimista, alumno: alumnoOptimista }];
+        return prev.filter((b) => b.booking.uid !== userDoc.uid);
+      });
       setError(err instanceof Error ? err.message : "Algo salió mal, intenta de nuevo.");
     } finally {
       setLoading(false);
+      setPendingAction(null);
     }
   }
 
@@ -111,7 +148,7 @@ export function ClassDetailDialog({
         <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3">
           <span className="flex items-center gap-2 text-sm font-medium">
             <Users className="size-4 text-primary" />
-            {session.cuposOcupados} de {session.capacidad} cupos
+            {optimisticCupos} de {session.capacidad} cupos
           </span>
           {cancelada ? (
             <Badge variant="destructive">Cancelada</Badge>
@@ -170,7 +207,7 @@ export function ClassDetailDialog({
         </div>
 
         {!pasada && error && <p className="text-sm text-destructive">{error}</p>}
-        {!pasada && reservada && !cancelableAhora && !cancelada && (
+        {!pasada && optimisticReservada && !cancelableAhora && !cancelada && (
           <p className="text-xs text-muted-foreground">
             Ya no puedes cancelar: falta menos del límite permitido para esta clase.
           </p>
@@ -179,13 +216,13 @@ export function ClassDetailDialog({
         {!cancelada && !pasada && (
           <Button
             className="h-11 w-full text-base"
-            variant={reservada ? "outline" : "default"}
-            disabled={loading || (!reservada && lleno) || (reservada && !cancelableAhora)}
+            variant={optimisticReservada ? "outline" : "default"}
+            disabled={loading || (!optimisticReservada && lleno) || (optimisticReservada && !cancelableAhora)}
             onClick={handleAccion}
           >
             {loading
               ? "Un momento…"
-              : reservada
+              : optimisticReservada
                 ? "Cancelar mi reserva"
                 : lleno
                   ? "Sin cupos"

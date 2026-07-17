@@ -135,7 +135,7 @@ export default function Home() {
             />
             <div>
               <p className="text-xs text-muted-foreground">La Terraza</p>
-              <h1 className="font-heading text-lg leading-tight font-semibold">
+              <h1 className="font-heading text-xl leading-tight font-semibold">
                 Hola, {userDoc?.nombre.split(" ")[0]} 👋
               </h1>
             </div>

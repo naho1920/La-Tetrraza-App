@@ -90,8 +90,8 @@ export default function MedallasPage() {
 
   const progreso = total === 0 ? 0 : logradas / total;
   const colorSeleccion = seleccion
-    ? PILARES.find((p) => p.pilar === seleccion.skill.pilar)?.color ?? "#6934E1"
-    : "#6934E1";
+    ? PILARES.find((p) => p.pilar === seleccion.skill.pilar)?.color ?? "var(--color-primary)"
+    : "var(--color-primary)";
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-24">

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { CalendarOff } from "lucide-react";
+
 import { MonthCalendar, type DayMarker } from "@/components/ui/month-calendar";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -86,8 +88,11 @@ export default function HorariosPage() {
         <p className="text-sm font-semibold capitalize text-muted-foreground">{tituloDia}</p>
 
         {sesionesDelDia.length === 0 ? (
-          <div className="rounded-3xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            No hay clases este día. Elige un día con punto morado 💜
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-card px-6 py-12 text-center ring-1 ring-foreground/10">
+            <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+              <CalendarOff className="size-5 text-muted-foreground" />
+            </span>
+            <p className="text-sm text-muted-foreground">No hay clases este día. Elige un día con punto morado 💜</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">

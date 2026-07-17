@@ -117,9 +117,9 @@ function TemplateDialog({
           {/* Día ocupa toda la fila: los nombres largos ("Miércoles") necesitan
               más ancho del que cabe compartiendo columna con la hora. */}
           <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Día</Label>
+            <Label htmlFor="dia-select">Día</Label>
             <Select value={diaSemana} onValueChange={(v) => setDiaSemana(v ?? "1")}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="dia-select" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -299,8 +299,8 @@ function QuickSetupDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Días con clases</Label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Días con clases</legend>
           <div className="flex gap-1.5">
             {ORDEN_DIAS.map((dia) => {
               const activo = dias.has(dia);
@@ -321,10 +321,10 @@ function QuickSetupDialog({
               );
             })}
           </div>
-        </div>
+        </fieldset>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Horarios de la mañana</Label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Horarios de la mañana</legend>
           <div className="flex flex-wrap gap-1.5">
             {manana.length === 0 && (
               <span className="py-1 text-sm text-muted-foreground">Sin clases de mañana</span>
@@ -333,10 +333,10 @@ function QuickSetupDialog({
               <ChipHora key={h} hora={h} />
             ))}
           </div>
-        </div>
+        </fieldset>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Horarios de la tarde</Label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Horarios de la tarde</legend>
           <div className="flex flex-wrap gap-1.5">
             {tarde.length === 0 && (
               <span className="py-1 text-sm text-muted-foreground">Sin clases de tarde</span>
@@ -345,7 +345,7 @@ function QuickSetupDialog({
               <ChipHora key={h} hora={h} />
             ))}
           </div>
-        </div>
+        </fieldset>
 
         <div className="flex items-end gap-2">
           <div className="flex flex-1 flex-col gap-1.5">

@@ -109,7 +109,7 @@ export function MonthCalendar({
               type="button"
               onClick={() => onSelect(iso)}
               className={cn(
-                "mx-auto flex size-10 flex-col items-center justify-center rounded-full text-sm transition-colors",
+                "mx-auto flex size-11 flex-col items-center justify-center rounded-full text-sm transition-colors",
                 activo
                   ? "bg-foreground font-semibold text-background"
                   : cn(

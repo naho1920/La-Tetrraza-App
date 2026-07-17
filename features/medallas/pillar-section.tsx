@@ -82,6 +82,7 @@ export function PillarSection({
                     key={nivel}
                     className="relative flex flex-col items-center gap-1"
                     onClick={() => onSelect({ skill, nivel, achievement })}
+                    aria-label={`${skill.nombreMedalla} – ${nivel === "base" ? "Insignia" : nivel}${lograda ? " (lograda)" : pendiente ? " (pendiente)" : ""}`}
                   >
                     <MedalBadge
                       pilar={pilar}

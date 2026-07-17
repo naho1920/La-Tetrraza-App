@@ -102,9 +102,9 @@ export function ClaimAchievementDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>Medalla</Label>
+            <Label htmlFor="medalla-select">Medalla</Label>
             <Select value={seleccion} onValueChange={(v) => setSeleccion(v ?? "")}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="medalla-select" className="w-full">
                 <SelectValue placeholder="Selecciona qué conseguiste" />
               </SelectTrigger>
               <SelectContent>
