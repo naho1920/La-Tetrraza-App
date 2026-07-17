@@ -322,13 +322,13 @@ export default function DiarioPage() {
 
   useEffect(() => {
     if (!userDoc) return;
-    Promise.all([listActiveMetrics(), listLogsForUser(userDoc.uid)]).then(
-      ([m, l]) => {
+    Promise.all([listActiveMetrics(), listLogsForUser(userDoc.uid)])
+      .then(([m, l]) => {
         setMetrics(m);
         setLogs(l);
-        setDataLoading(false);
-      }
-    );
+      })
+      .catch(console.error)
+      .finally(() => setDataLoading(false));
   }, [userDoc]);
 
   function handleLogged(log: ActivityLog, nuevas: DiarioAchievement[]) {

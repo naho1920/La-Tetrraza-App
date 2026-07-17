@@ -27,13 +27,12 @@ export function secsToDisplay(secs: number): string {
 // --- TrackingMetrics ---
 
 export async function listActiveMetrics(): Promise<TrackingMetric[]> {
-  const q = query(
-    collection(db, "trackingMetrics"),
-    where("activa", "==", true),
-    orderBy("orden", "asc")
-  );
+  // Sin where+orderBy compuesto para no requerir índice compuesto.
+  const q = query(collection(db, "trackingMetrics"), orderBy("orden", "asc"));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as TrackingMetric));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as TrackingMetric))
+    .filter((m) => m.activa);
 }
 
 export async function listAllMetricsAdmin(): Promise<TrackingMetric[]> {
@@ -76,13 +75,19 @@ export async function addActivityLog(
 }
 
 export async function listLogsForUser(uid: string): Promise<ActivityLog[]> {
+  // Sin orderBy compuesto para no requerir índice. Se ordena client-side.
   const q = query(
     collection(db, "activityLogs"),
-    where("uid", "==", uid),
-    orderBy("creadoAt", "desc")
+    where("uid", "==", uid)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ActivityLog));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as ActivityLog))
+    .sort((a, b) => {
+      const ta = a.creadoAt?.toDate().getTime() ?? 0;
+      const tb = b.creadoAt?.toDate().getTime() ?? 0;
+      return tb - ta;
+    });
 }
 
 // --- DiarioAchievements ---
