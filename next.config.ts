@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.supabase.co",
-              "connect-src 'self' https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com wss://*.firebaseio.com https://*.supabase.co",
+              "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebase.com https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com https://*.supabase.co",
               "font-src 'self'",
               "frame-src https://accounts.google.com https://*.firebaseapp.com",
               "object-src 'none'",
