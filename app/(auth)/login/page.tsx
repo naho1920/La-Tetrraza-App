@@ -18,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   createAccountWithEmailPassword,
-  getGoogleRedirectResult,
   sendPasswordReset,
   signInWithEmailPassword,
   signInWithGoogle,
@@ -64,15 +63,7 @@ export default function LoginPage() {
     if (status === "not-approved") router.replace("/sin-acceso");
   }, [status, router]);
 
-  // Recoge el resultado del redirect de Google al volver a la página
-  useEffect(() => {
-    getGoogleRedirectResult().catch((err) => {
-      console.error("Google redirect error:", err);
-      setError(authErrorMessage(err));
-    });
-  }, []);
-
-  async function handleGoogle() {
+async function handleGoogle() {
     setError(null);
     setLoading(true);
     try {
