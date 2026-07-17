@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { TabBar } from "@/components/ui/tab-bar";
 import { RequireApproved } from "@/features/auth/guards";
+import { CelebrationListener } from "@/features/medallas/celebration-listener";
 import { OfflineBanner } from "@/features/pwa/offline-banner";
 import { InstallPrompt } from "@/features/pwa/install-prompt";
 import { Toaster } from "@/components/ui/toast";
@@ -22,6 +23,8 @@ export default function AlumnoLayout({ children }: { children: ReactNode }) {
         <InstallPrompt />
         {/* TASK-081: pila de toasts con auto-dismiss. */}
         <Toaster />
+        {/* TASK-067: celebración global — cualquier página puede disparar el confetti. */}
+        <CelebrationListener />
       </div>
     </RequireApproved>
   );

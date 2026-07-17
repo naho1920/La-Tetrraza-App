@@ -84,7 +84,7 @@ export default function PerfilPage() {
           </div>
           <Button
             render={<Link href="/perfil/editar" />}
-            className="bg-white text-neutral-900 hover:bg-white/90"
+            variant="on-dark"
           >
             <UserPen className="size-4" data-icon="inline-start" />
             Editar perfil

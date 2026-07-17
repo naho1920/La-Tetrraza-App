@@ -3,7 +3,6 @@
 import { ArrowUpRight, Award, CalendarDays, Scale, UtensilsCrossed, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -16,13 +15,7 @@ import { TabBar } from "@/components/ui/tab-bar";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
 import { necesitaBienvenida, necesitaOnboarding } from "@/features/auth/onboarding-status";
-import {
-  getSkill,
-  getUncelebratedValidated,
-  listAchievementsForUser,
-  marcarCelebrado,
-} from "@/features/medallas/api";
-import type { Achievement, Skill } from "@/features/medallas/types";
+import { listAchievementsForUser } from "@/features/medallas/api";
 import { getMembershipForUser } from "@/features/membresias/api";
 import { ESTADO_LABEL, calcularEstadoMembresia } from "@/features/membresias/estado";
 import type { EstadoMembresia } from "@/features/membresias/types";
@@ -34,18 +27,10 @@ import { toISODate } from "@/features/reservas/date-utils";
 import type { Booking, ClassSession } from "@/features/reservas/types";
 import { AdminDashboard } from "@/features/estadisticas/dashboard";
 
-// framer-motion + canvas-confetti (~29 KB) solo hacen falta si hay una
-// medalla sin celebrar, así que no deben viajar en el bundle inicial de Home.
-const AchievementCelebration = dynamic(
-  () => import("@/features/medallas/celebration").then((m) => m.AchievementCelebration),
-  { ssr: false }
-);
-
 export default function Home() {
   const router = useRouter();
   const { status, userDoc } = useAuth();
   const [proximas, setProximas] = useState<Array<{ booking: Booking; session: ClassSession }>>([]);
-  const [celebracion, setCelebracion] = useState<{ achievement: Achievement; skill: Skill } | null>(null);
   const [ultimoPeso, setUltimoPeso] = useState<number | null>(null);
   const [medallas, setMedallas] = useState<number | null>(null);
   const [estadoMembresia, setEstadoMembresia] = useState<EstadoMembresia | null>(null);
@@ -73,21 +58,6 @@ export default function Home() {
     cargarDatosAlumno(userDoc.uid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, userDoc]);
-
-  useEffect(() => {
-    if (status !== "ready" || userDoc?.rol !== "alumno") return;
-    getUncelebratedValidated(userDoc.uid).then(async (achievement) => {
-      if (!achievement) return;
-      const skill = await getSkill(achievement.skillId);
-      if (skill) setCelebracion({ achievement, skill });
-    });
-  }, [status, userDoc]);
-
-  async function handleCerrarCelebracion() {
-    if (!celebracion) return;
-    await marcarCelebrado(celebracion.achievement.id);
-    setCelebracion(null);
-  }
 
   const debeVerBienvenida = necesitaBienvenida(userDoc);
   const debeVerOnboarding = necesitaOnboarding(userDoc);
@@ -177,7 +147,7 @@ export default function Home() {
             )}
             <Button
               render={<Link href="/horarios" />}
-              className="bg-white text-neutral-900 hover:bg-white/90"
+              variant="on-dark"
             >
               Ver calendario de clases
             </Button>
@@ -216,13 +186,6 @@ export default function Home() {
       </div>
       <TabBar />
 
-      {celebracion && (
-        <AchievementCelebration
-          achievement={celebracion.achievement}
-          skill={celebracion.skill}
-          onClose={handleCerrarCelebracion}
-        />
-      )}
     </div>
   );
 }

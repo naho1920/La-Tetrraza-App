@@ -209,6 +209,17 @@ export async function validarAchievement(id: string, adminUid: string, aprobado:
   }
 }
 
+/**
+ * TASK-065: todos los achievements de Fuerza que tienen `pesoLevantadoKg`
+ * registrado. Sirve para la vista admin "quién está cerca de qué medalla".
+ */
+export async function listAchievementsConPeso(): Promise<Achievement[]> {
+  const snap = await getDocs(
+    query(collection(db, "achievements"), where("pesoLevantadoKg", "!=", null))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+}
+
 export async function marcarPinEntregado(id: string) {
   await updateDoc(doc(db, "achievements", id), { pinEntregado: true });
 }

@@ -120,7 +120,8 @@ export default function MedallasPage() {
         </div>
         {skills.length > 0 && (
           <Button
-            className="h-11 w-full bg-white text-base text-neutral-900 hover:bg-white/90"
+            variant="on-dark"
+            className="h-11 w-full text-base"
             onClick={() => setMostrarClaim(true)}
           >
             <Plus className="size-4" data-icon="inline-start" />

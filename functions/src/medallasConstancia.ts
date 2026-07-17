@@ -12,6 +12,9 @@ const SKILL_CENTENARIA = "centenaria";
 const SKILL_UN_ANIO = "un-anio";
 const SKILL_FUNDADOR = "fundador";
 
+// PRD §7.5 dice "100% asistencia", pero en la práctica el box tiene un mínimo
+// operativo de 8 clases por mes (2 veces/semana). Si alguien asistió >= 8 veces
+// y sin ninguna falta marcada, se considera Mes Perfecto. Ajustar aquí si cambia.
 const MIN_CLASES_MES_PERFECTO = 8;
 const MIN_CLASES_CENTENARIA = 100;
 const MAX_FUNDADORES = 20;
@@ -143,16 +146,23 @@ export const medallasConstancia = onSchedule(
       }
     }
 
-    // Mes Perfecto: solo se evalúa el día 1, sobre el mes recién cerrado.
-    // Se repite cada mes así que el id incluye el periodo para mantener
-    // un documento distinto por mes y seguir siendo idempotente.
-    if (hoy.getDate() === 1) {
-      const finMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
-      const inicioMesAnterior = new Date(finMesAnterior.getFullYear(), finMesAnterior.getMonth(), 1);
-      const desdeISO = toISODate(inicioMesAnterior);
-      const hastaISO = toISODate(finMesAnterior);
-      const periodo = desdeISO.slice(0, 7); // "YYYY-MM"
+    // Mes Perfecto: se evalúa el día 1 sobre el mes recién cerrado (path normal)
+    // y también hace backfill de los últimos 6 meses por si el cron falló.
+    // El id incluye el periodo → idempotente: un reintento no duplica.
+    const mesesAEvaluar: Array<{ desdeISO: string; hastaISO: string; periodo: string }> = [];
+    for (let delta = 1; delta <= 6; delta += 1) {
+      const ref = new Date(hoy.getFullYear(), hoy.getMonth() - delta + 1, 0); // último día del mes candidato
+      // Solo evaluar meses ya cerrados.
+      if (ref >= hoy) continue;
+      const inicio = new Date(ref.getFullYear(), ref.getMonth(), 1);
+      mesesAEvaluar.push({
+        desdeISO: toISODate(inicio),
+        hastaISO: toISODate(ref),
+        periodo: toISODate(inicio).slice(0, 7),
+      });
+    }
 
+    for (const { desdeISO, hastaISO, periodo } of mesesAEvaluar) {
       for (const u of usuarios) {
         if (await fueMesPerfecto(u.uid, desdeISO, hastaISO)) {
           await otorgarSiNoExiste(`${u.uid}_${SKILL_MES_PERFECTO}_base_${periodo}`, u.uid, SKILL_MES_PERFECTO);

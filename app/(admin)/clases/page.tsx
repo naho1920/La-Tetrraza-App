@@ -391,7 +391,8 @@ export default function AdminClasesPage() {
           </p>
         </div>
         <Button
-          className="shrink-0 bg-white text-neutral-900 hover:bg-white/90"
+          variant="on-dark"
+          className="shrink-0"
           onClick={() => setMostrarGenerar(true)}
         >
           <CalendarPlus className="size-4" data-icon="inline-start" />

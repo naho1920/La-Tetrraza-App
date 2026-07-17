@@ -20,6 +20,7 @@ import { listActivatedUsers } from "@/features/admin/api";
 import {
   listAllSkillsAdmin,
   listAchievementsByEstado,
+  listAchievementsConPeso,
   listPinesPendientes,
   marcarPinEntregado,
   obtenerUrlVideo,
@@ -121,7 +122,7 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   );
 }
 
-type Vista = "pendientes" | "pines";
+type Vista = "pendientes" | "pines" | "cerca";
 
 function useSkillsMap() {
   const [skills, setSkills] = useState<Record<string, Skill>>({});
@@ -150,6 +151,115 @@ function useNombresAlumnos(uids: string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uids.join(",")]);
   return nombres;
+}
+
+/**
+ * TASK-065: muestra qué alumnos están cerca de alcanzar el siguiente nivel
+ * de una medalla de Fuerza, basándose en el `pesoLevantadoKg` que declararon
+ * al reclamar sus achievements más recientes.
+ */
+function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    setCargando(true);
+    listAchievementsConPeso()
+      .then(setAchievements)
+      .finally(() => setCargando(false));
+  }, []);
+
+  const nombres = useNombresAlumnos(achievements.map((a) => a.uid));
+
+  if (cargando) return <p className="py-4 text-sm text-muted-foreground">Cargando…</p>;
+
+  // Por cada achievement con pesoLevantadoKg, calcular cuánto falta para el
+  // siguiente nivel. Solo se muestran los que están entre 70 % y 99 %.
+  type FilaCerca = {
+    achievementId: string;
+    uid: string;
+    nombre: string;
+    skill: Skill;
+    nivelActual: string;
+    nivelSiguiente: string;
+    pesoActual: number;
+    umbral: number;
+    progreso: number;
+  };
+
+  const filas: FilaCerca[] = [];
+
+  for (const a of achievements) {
+    if (!a.pesoLevantadoKg || !a.pesoAlReclamo) continue;
+    const skill = skills[a.skillId];
+    if (!skill?.relativoABW) continue;
+
+    const niveles = skill.nivelesDisponibles;
+    const idxActual = niveles.indexOf(a.nivel);
+    if (idxActual < 0 || idxActual === niveles.length - 1) continue; // último nivel → ya está en el top
+
+    const nivelSiguiente = niveles[idxActual + 1];
+    const multStr = skill.hitos[nivelSiguiente];
+    const mult = parseFloat(multStr ?? "0");
+    if (!mult || isNaN(mult)) continue;
+
+    const umbral = Math.round(a.pesoAlReclamo * mult * 10) / 10;
+    const progreso = a.pesoLevantadoKg / umbral;
+    if (progreso < 0.7 || progreso >= 1) continue; // fuera del rango de interés
+
+    filas.push({
+      achievementId: a.id,
+      uid: a.uid,
+      nombre: nombres[a.uid] ?? a.uid,
+      skill,
+      nivelActual: a.nivel,
+      nivelSiguiente,
+      pesoActual: a.pesoLevantadoKg,
+      umbral,
+      progreso,
+    });
+  }
+
+  filas.sort((a, b) => b.progreso - a.progreso);
+
+  if (filas.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+          <Award className="size-5 text-muted-foreground" />
+        </span>
+        <p className="text-sm text-muted-foreground">
+          Nadie está cerca de una medalla en este momento.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col divide-y divide-border">
+      {filas.map((f) => {
+        const porcentaje = Math.round(f.progreso * 100);
+        return (
+          <li key={f.achievementId} className="flex flex-col gap-1.5 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">{f.nombre}</p>
+              <Badge variant="outline">{porcentaje}%</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {f.skill.nombreMedalla} — {f.nivelSiguiente} · levantó{" "}
+              <strong>{f.pesoActual} kg</strong> de {f.umbral} kg necesarios
+            </p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${porcentaje}%` }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function tituloMedalla(skill: Skill | undefined, nivel: string) {
@@ -191,7 +301,7 @@ export default function AdminMedallasPage() {
   const [pines, setPines] = useState<Achievement[]>([]);
   const skills = useSkillsMap();
 
-  const lista = vista === "pendientes" ? pendientes : pines;
+  const lista = vista === "pendientes" ? pendientes : vista === "pines" ? pines : [];
   const nombres = useNombresAlumnos(lista.map((a) => a.uid));
 
   function cargar() {
@@ -236,6 +346,13 @@ export default function AdminMedallasPage() {
         >
           Pines pendientes ({pines.length})
         </Button>
+        <Button
+          size="sm"
+          variant={vista === "cerca" ? "default" : "outline"}
+          onClick={() => setVista("cerca")}
+        >
+          Cerca 🎯
+        </Button>
         <Button render={<Link href="/medallas-admin/catalogo" />} size="sm" variant="ghost">
           Catálogo
         </Button>
@@ -243,7 +360,9 @@ export default function AdminMedallasPage() {
 
       <Card>
         <CardContent>
-          {lista.length === 0 ? (
+          {vista === "cerca" ? (
+            <CercaDeMedalla skills={skills} />
+          ) : lista.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <Award className="size-5 text-muted-foreground" />

@@ -111,6 +111,29 @@ export const CATALOGO_MEDALLAS: SkillSeed[] = [
     arte: "overhead",
   },
 
+  {
+    pilar: "fuerza",
+    nombreMedalla: "Thruster",
+    habilidad: "Thruster",
+    tipo: "niveles",
+    nivelesDisponibles: ["bronce", "plata", "oro"],
+    hitos: { bronce: "tecnica", plata: "0.6", oro: "0.85" },
+    relativoABW: true,
+    orden: 10,
+    arte: "thruster",
+  },
+  {
+    pilar: "fuerza",
+    nombreMedalla: "Push Jerk",
+    habilidad: "Push Jerk",
+    tipo: "niveles",
+    nivelesDisponibles: ["bronce", "plata", "oro"],
+    hitos: { bronce: "tecnica", plata: "0.65", oro: "0.9" },
+    relativoABW: true,
+    orden: 11,
+    arte: "push-jerk",
+  },
+
   // ---------- Pilar 2 — Gimnasia y Acrobacias (insignias) ----------
   {
     pilar: "gimnasia",
@@ -212,6 +235,29 @@ export const CATALOGO_MEDALLAS: SkillSeed[] = [
     arte: "nucleo",
   },
 
+  {
+    pilar: "gimnasia",
+    nombreMedalla: "Dips",
+    habilidad: "Dips en anillas",
+    tipo: "insignia",
+    nivelesDisponibles: ["base", "oro"],
+    hitos: { base: "3 dips estrictos en anillas", oro: "10 dips en anillas seguidos" },
+    relativoABW: false,
+    orden: 10,
+    arte: "dips",
+  },
+  {
+    pilar: "gimnasia",
+    nombreMedalla: "Volar",
+    habilidad: "Box jump",
+    tipo: "insignia",
+    nivelesDisponibles: ["base", "oro"],
+    hitos: { base: "Box jump 50 cm (hombre) / 40 cm (mujer)", oro: "Box jump 75 cm (hombre) / 60 cm (mujer)" },
+    relativoABW: false,
+    orden: 11,
+    arte: "volar",
+  },
+
   // ---------- Pilar 3 — Resistencia ----------
   {
     pilar: "resistencia",
@@ -278,6 +324,40 @@ export const CATALOGO_MEDALLAS: SkillSeed[] = [
     relativoABW: false,
     orden: 6,
     arte: "rx",
+  },
+
+  {
+    pilar: "resistencia",
+    nombreMedalla: "Annie",
+    habilidad: 'WOD benchmark "Annie"',
+    tipo: "insignia",
+    nivelesDisponibles: ["base", "oro"],
+    hitos: { base: "Completar Annie (50-40-30-20-10)", oro: "Completarla en menos de 12 minutos" },
+    relativoABW: false,
+    orden: 7,
+    arte: "annie",
+  },
+  {
+    pilar: "resistencia",
+    nombreMedalla: "Cindy",
+    habilidad: 'WOD benchmark "Cindy"',
+    tipo: "insignia",
+    nivelesDisponibles: ["base", "oro"],
+    hitos: { base: "Completar Cindy (20 min AMRAP)", oro: "Completar 20+ rondas" },
+    relativoABW: false,
+    orden: 8,
+    arte: "cindy",
+  },
+  {
+    pilar: "resistencia",
+    nombreMedalla: "Corredor/a",
+    habilidad: "Carrera",
+    tipo: "insignia",
+    nivelesDisponibles: ["base", "oro"],
+    hitos: { base: "Completar 5 km", oro: "Completar 5 km en menos de 25 minutos" },
+    relativoABW: false,
+    orden: 9,
+    arte: "corredor",
   },
 
   // ---------- Pilar 4 — Constancia (automáticas, Cloud Function) ----------
