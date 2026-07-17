@@ -30,7 +30,8 @@ import {
   listLogsForUser,
   secsToDisplay,
 } from "@/features/diario/api";
-import type { ActivityLog, DiarioAchievement, TrackingMetric } from "@/features/diario/types";
+import type { ActivityLog, AudienciaTag, DiarioAchievement, TrackingMetric } from "@/features/diario/types";
+import type { UserDoc } from "@/features/auth/types";
 
 function todayISO(): string {
   return new Date().toISOString().split("T")[0];
@@ -42,6 +43,32 @@ function formatFecha(fecha: string): string {
     day: "numeric",
     month: "short",
   });
+}
+
+function metricVisiblePara(metric: TrackingMetric, user: UserDoc): boolean {
+  const audiencia: AudienciaTag[] = metric.audiencia ?? ["todos"];
+  if (audiencia.includes("todos")) return true;
+
+  // Cada tag debe cumplirse (AND). Si el campo del perfil es null, se ignora ese tag.
+  for (const tag of audiencia) {
+    if (tag === "mujeres" && user.sexo !== null && user.sexo !== "femenino") return false;
+    if (tag === "hombres" && user.sexo !== null && user.sexo !== "masculino") return false;
+    if (tag === "principiantes" && user.nivel != null && user.nivel !== "principiante") return false;
+    if (tag === "avanzados" && user.nivel != null && user.nivel !== "avanzado") return false;
+  }
+  return true;
+}
+
+function audienciaLabel(audiencia: AudienciaTag[] | undefined): string | null {
+  if (!audiencia || audiencia.includes("todos")) return null;
+  const map: Record<AudienciaTag, string> = {
+    todos: "Todos",
+    mujeres: "Mujeres",
+    hombres: "Hombres",
+    principiantes: "Principiantes",
+    avanzados: "Avanzados",
+  };
+  return audiencia.map((t) => map[t]).join(" · ");
 }
 
 function unidadLabel(unidad: TrackingMetric["unidad"]): string {
@@ -319,7 +346,8 @@ export default function DiarioPage() {
   if (status === "loading" || dataLoading) return <PageSkeleton />;
   if (!userDoc) return null;
 
-  const wods = metrics.filter((m) => m.publicadaHoy);
+  const visibleMetrics = metrics.filter((m) => metricVisiblePara(m, userDoc));
+  const wods = visibleMetrics.filter((m) => m.publicadaHoy);
   const today = todayISO();
   const loggedToday = new Set(
     logs.filter((l) => l.fecha === today).map((l) => l.metricId)
@@ -376,6 +404,11 @@ export default function DiarioPage() {
                             : metric.umbrales.oro}{" "}
                           {unidadLabel(metric.unidad)}
                         </p>
+                        {audienciaLabel(metric.audiencia) && (
+                          <p className="text-xs text-primary/70">
+                            👥 {audienciaLabel(metric.audiencia)}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {done ? (
@@ -442,7 +475,7 @@ export default function DiarioPage() {
 
       {showLogDialog && (
         <LogDialog
-          metrics={metrics}
+          metrics={visibleMetrics}
           preselected={preselected}
           uid={userDoc.uid}
           onClose={() => {

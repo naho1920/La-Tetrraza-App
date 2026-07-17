@@ -14,6 +14,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Meta, Sexo, UserDoc } from "@/features/auth/types";
+
+const NIVEL_LABELS: Record<"principiante" | "avanzado", string> = {
+  principiante: "Principiante",
+  avanzado: "Avanzado",
+};
 import { updateProfile } from "./api";
 
 const META_LABELS: Record<Meta, string> = {
@@ -64,6 +69,7 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
   const [nombre, setNombre] = useState(userDoc.nombre ?? "");
   const [fechaNac, setFechaNac] = useState(userDoc.fechaNac ?? "");
   const [sexo, setSexo] = useState<Sexo | "">(userDoc.sexo ?? "");
+  const [nivel, setNivel] = useState<"principiante" | "avanzado" | "">(userDoc.nivel ?? "");
   const [estaturaCm, setEstaturaCm] = useState(userDoc.estaturaCm?.toString() ?? "");
   const [cuelloCm, setCuelloCm] = useState(userDoc.cuelloCm?.toString() ?? "");
   const [cinturaCm, setCinturaCm] = useState(userDoc.cinturaCm?.toString() ?? "");
@@ -90,6 +96,7 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
         nombre,
         fechaNac: fechaNac || null,
         sexo: sexo || null,
+        nivel: nivel || null,
         estaturaCm: estaturaCm ? Number(estaturaCm) : null,
         cuelloCm: cuelloCm ? Number(cuelloCm) : null,
         cinturaCm: cinturaCm ? Number(cinturaCm) : null,
@@ -148,6 +155,22 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="nivel-select">Nivel</Label>
+        <Select value={nivel} onValueChange={(v) => setNivel(v as "principiante" | "avanzado")}>
+          <SelectTrigger id="nivel-select" className="w-full">
+            <SelectValue placeholder="Selecciona" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(NIVEL_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">

@@ -20,6 +20,7 @@ export type PerfilFormValues = Pick<
   | "nombre"
   | "fechaNac"
   | "sexo"
+  | "nivel"
   | "estaturaCm"
   | "cuelloCm"
   | "cinturaCm"

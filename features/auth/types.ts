@@ -36,4 +36,7 @@ export interface UserDoc {
   // feature no tienen el campo — se tratan como ya vistas si además
   // `onboardingCompletado` ya era true (ver onboarding-status.ts).
   bienvenidaVista?: boolean;
+  // Nivel de experiencia para filtrar métricas del Diario.
+  // Los docs anteriores a esta feature no tienen el campo.
+  nivel?: "principiante" | "avanzado" | null;
 }

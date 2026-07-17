@@ -1,5 +1,6 @@
 export type UnidadMetric = "kg" | "tiempo" | "reps";
 export type NivelDiario = "bronce" | "plata" | "oro";
+export type AudienciaTag = "todos" | "mujeres" | "hombres" | "principiantes" | "avanzados";
 
 export interface TrackingMetric {
   id: string;
@@ -13,6 +14,7 @@ export interface TrackingMetric {
   };
   activa: boolean;
   publicadaHoy: boolean;
+  audiencia: AudienciaTag[];
   orden: number;
   creadoAt: { toDate: () => Date } | null;
   creadoPor: string;

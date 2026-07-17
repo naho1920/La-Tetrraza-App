@@ -25,9 +25,17 @@ import {
   secsToDisplay,
   updateMetric,
 } from "@/features/diario/api";
-import type { TrackingMetric, UnidadMetric } from "@/features/diario/types";
+import type { AudienciaTag, TrackingMetric, UnidadMetric } from "@/features/diario/types";
 
 // ── Form helpers ───────────────────────────────────────────────────────────────
+
+const AUDIENCIA_OPTIONS: { value: AudienciaTag; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "mujeres", label: "Mujeres" },
+  { value: "hombres", label: "Hombres" },
+  { value: "principiantes", label: "Principiantes" },
+  { value: "avanzados", label: "Avanzados" },
+];
 
 interface MetricFormData {
   nombre: string;
@@ -36,6 +44,7 @@ interface MetricFormData {
   orden: string;
   activa: boolean;
   publicadaHoy: boolean;
+  audiencia: AudienciaTag[];
 }
 
 const EMPTY_FORM: MetricFormData = {
@@ -45,6 +54,7 @@ const EMPTY_FORM: MetricFormData = {
   orden: "0",
   activa: true,
   publicadaHoy: false,
+  audiencia: ["todos"],
 };
 
 function parseUmbral(val: string, unidad: UnidadMetric): number {
@@ -109,6 +119,7 @@ export default function DiarioAdminPage() {
       orden: String(metric.orden),
       activa: metric.activa,
       publicadaHoy: metric.publicadaHoy,
+      audiencia: metric.audiencia ?? ["todos"],
     });
     setError(null);
     setShowForm(true);
@@ -132,6 +143,7 @@ export default function DiarioAdminPage() {
         },
         activa: form.activa,
         publicadaHoy: form.publicadaHoy,
+        audiencia: form.audiencia.length === 0 ? ["todos"] : form.audiencia,
         orden: parseInt(form.orden, 10) || 0,
         creadoPor: userDoc.uid,
       } as Omit<TrackingMetric, "id" | "creadoAt">;
@@ -295,6 +307,46 @@ export default function DiarioAdminPage() {
                 />
               </div>
 
+              <div className="flex flex-col gap-2">
+                <Label>Audiencia</Label>
+                <div className="flex flex-wrap gap-2">
+                  {AUDIENCIA_OPTIONS.map(({ value, label }) => {
+                    const selected = form.audiencia.includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          if (value === "todos") {
+                            setForm((f) => ({ ...f, audiencia: ["todos"] }));
+                          } else {
+                            setForm((f) => {
+                              const without = f.audiencia.filter(
+                                (t) => t !== "todos" && t !== value
+                              );
+                              const next = selected
+                                ? without
+                                : [...without, value as AudienciaTag];
+                              return {
+                                ...f,
+                                audiencia: next.length === 0 ? ["todos"] : next,
+                              };
+                            });
+                          }
+                        }}
+                        className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                          selected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-3">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="form-activa">Activa</Label>
@@ -355,11 +407,16 @@ export default function DiarioAdminPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       🥉 {displayUmbral(metric.umbrales.bronce, metric.unidad)}{" "}
                       · 🥈 {displayUmbral(metric.umbrales.plata, metric.unidad)}{" "}
                       · 🥇 {displayUmbral(metric.umbrales.oro, metric.unidad)}
                     </p>
+                    {metric.audiencia && !metric.audiencia.includes("todos") && (
+                      <p className="mt-0.5 text-xs text-primary/70">
+                        👥 {metric.audiencia.join(" · ")}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
