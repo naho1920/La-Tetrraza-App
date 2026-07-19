@@ -74,6 +74,21 @@ export async function addActivityLog(
   return ref.id;
 }
 
+export async function updateActivityLog(
+  id: string,
+  data: Pick<ActivityLog, "valor" | "valorDisplay" | "nota">
+): Promise<void> {
+  await updateDoc(doc(db, "activityLogs", id), {
+    valor: data.valor,
+    valorDisplay: data.valorDisplay,
+    nota: data.nota ?? null,
+  });
+}
+
+export async function deleteActivityLog(id: string): Promise<void> {
+  await deleteDoc(doc(db, "activityLogs", id));
+}
+
 export async function listLogsForUser(uid: string): Promise<ActivityLog[]> {
   // Sin orderBy compuesto para no requerir índice. Se ordena client-side.
   const q = query(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, Dumbbell, Plus, Trophy } from "lucide-react";
+import { Check, Clock, Dumbbell, Pencil, Plus, Trash2, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,11 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import {
   addActivityLog,
   checkAndGrantAchievements,
+  deleteActivityLog,
   listActiveMetrics,
   listLogsForUser,
   secsToDisplay,
+  updateActivityLog,
 } from "@/features/diario/api";
 import type {
   ActivityLog,
@@ -442,6 +444,154 @@ function LogDialog({
   );
 }
 
+// ── Edit log dialog ────────────────────────────────────────────────────────────
+
+function EditLogDialog({
+  log,
+  metric,
+  onClose,
+  onSaved,
+}: {
+  log: ActivityLog;
+  metric: TrackingMetric;
+  onClose: () => void;
+  onSaved: (updated: ActivityLog) => void;
+}) {
+  const initMin = metric.unidad === "tiempo" ? String(Math.floor(log.valor / 60)) : "";
+  const initSeg = metric.unidad === "tiempo" ? String(log.valor % 60) : "";
+  const initNum = metric.unidad !== "tiempo" ? String(log.valor) : "";
+
+  const [valorNum, setValorNum] = useState(initNum);
+  const [minutos, setMinutos] = useState(initMin);
+  const [segundos, setSegundos] = useState(initSeg);
+  const [nota, setNota] = useState(log.nota ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      let valor: number;
+      let valorDisplay: string;
+
+      if (metric.unidad === "tiempo") {
+        const m = parseInt(minutos || "0", 10);
+        const s = parseInt(segundos || "0", 10);
+        if (s >= 60) { setError("Los segundos deben ser entre 0 y 59."); return; }
+        valor = m * 60 + s;
+        if (valor === 0) { setError("Ingresa un tiempo válido."); return; }
+        valorDisplay = `${m}:${String(s).padStart(2, "0")}`;
+      } else {
+        valor = parseFloat(valorNum);
+        if (isNaN(valor) || valor <= 0) { setError("Ingresa un valor válido."); return; }
+        valorDisplay = `${valor} ${metric.unidad}`;
+      }
+
+      await updateActivityLog(log.id, { valor, valorDisplay, nota: nota.trim() || undefined });
+      onSaved({ ...log, valor, valorDisplay, nota: nota.trim() || undefined });
+    } catch {
+      setError("No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Editar registro</DialogTitle>
+        </DialogHeader>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+          <div className="rounded-lg bg-muted px-3 py-2 text-sm font-medium">{metric.nombre}</div>
+
+          {metric.unidad === "tiempo" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label>Tiempo</Label>
+              <div className="flex items-center gap-2">
+                <Input type="number" min="0" placeholder="min" value={minutos}
+                  onChange={(e) => setMinutos(e.target.value)} className="w-20 text-center" />
+                <span className="text-muted-foreground font-medium">:</span>
+                <Input type="number" min="0" max="59" placeholder="seg" value={segundos}
+                  onChange={(e) => setSegundos(e.target.value)} className="w-20 text-center" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <Label>{metric.unidad === "kg" ? "Peso (kg)" : "Repeticiones"}</Label>
+              <Input type="number" min="0" step={metric.unidad === "kg" ? "0.5" : "1"}
+                value={valorNum} onChange={(e) => setValorNum(e.target.value)} />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Nota (opcional)</Label>
+            <textarea
+              className="flex min-h-[64px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              placeholder="¿Cómo te fue?"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <Button type="submit" disabled={loading}>{loading ? "Guardando…" : "Guardar cambios"}</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Delete confirm dialog ──────────────────────────────────────────────────────
+
+function DeleteConfirmDialog({
+  log,
+  metric,
+  onConfirm,
+  onCancel,
+}: {
+  log: ActivityLog;
+  metric: TrackingMetric | undefined;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleDelete() {
+    setLoading(true);
+    try {
+      await deleteActivityLog(log.id);
+      onConfirm();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onCancel}>
+      <DialogContent className="max-w-xs text-center">
+        <DialogHeader>
+          <DialogTitle>¿Eliminar registro?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground py-2">
+          Se eliminará el registro de <strong>{metric?.nombre ?? "este ejercicio"}</strong> con valor{" "}
+          <strong>{log.valorDisplay}</strong>. Esta acción no se puede deshacer.
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button variant="destructive" disabled={loading} onClick={handleDelete}>
+            {loading ? "Eliminando…" : "Sí, eliminar"}
+          </Button>
+          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function DiarioPage() {
@@ -452,6 +602,8 @@ export default function DiarioPage() {
   const [showLogDialog, setShowLogDialog] = useState(false);
   const [preselected, setPreselected] = useState<TrackingMetric | undefined>();
   const [newAchievements, setNewAchievements] = useState<DiarioAchievement[]>([]);
+  const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
+  const [deletingLog, setDeletingLog] = useState<ActivityLog | null>(null);
 
   useEffect(() => {
     if (!userDoc) return;
@@ -491,6 +643,16 @@ export default function DiarioPage() {
   function openLogFor(metric: TrackingMetric) {
     setPreselected(metric);
     setShowLogDialog(true);
+  }
+
+  function handleEdited(updated: ActivityLog) {
+    setLogs((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    setEditingLog(null);
+  }
+
+  function handleDeleted(id: string) {
+    setLogs((prev) => prev.filter((l) => l.id !== id));
+    setDeletingLog(null);
   }
 
   if (status === "loading" || dataLoading) return <PageSkeleton />;
@@ -559,9 +721,9 @@ export default function DiarioPage() {
               return (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex items-center gap-3 px-4 py-3"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
                       {metric?.nombre ?? "—"}
                     </p>
@@ -578,6 +740,24 @@ export default function DiarioPage() {
                     <p className="text-xs text-muted-foreground">
                       {formatFecha(log.fecha)}
                     </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      aria-label="Editar registro"
+                      onClick={() => setEditingLog(log)}
+                      className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Eliminar registro"
+                      onClick={() => setDeletingLog(log)}
+                      className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                 </div>
               );
@@ -603,6 +783,27 @@ export default function DiarioPage() {
         <DiarioCelebration
           achievements={newAchievements}
           onClose={() => setNewAchievements([])}
+        />
+      )}
+
+      {editingLog && (() => {
+        const metric = metrics.find((m) => m.id === editingLog.metricId);
+        return metric ? (
+          <EditLogDialog
+            log={editingLog}
+            metric={metric}
+            onClose={() => setEditingLog(null)}
+            onSaved={handleEdited}
+          />
+        ) : null;
+      })()}
+
+      {deletingLog && (
+        <DeleteConfirmDialog
+          log={deletingLog}
+          metric={metrics.find((m) => m.id === deletingLog.metricId)}
+          onConfirm={() => handleDeleted(deletingLog.id)}
+          onCancel={() => setDeletingLog(null)}
         />
       )}
     </div>
