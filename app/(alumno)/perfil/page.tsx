@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BookOpen, CalendarCheck, ChevronRight, CreditCard, Scale, UserPen } from "lucide-react";
+import { Award, BookOpen, CalendarCheck, ChevronRight, CreditCard, LogOut, Scale, UserPen } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -70,6 +70,9 @@ export default function PerfilPage() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <NotificationsBell />
+          <Button variant="ghost" size="icon" aria-label="Cerrar sesión" onClick={() => signOutUser()}>
+            <LogOut className="size-4" />
+          </Button>
         </div>
       </header>
 
@@ -141,9 +144,6 @@ export default function PerfilPage() {
         </BentoTile>
       </BentoGrid>
 
-      <Button variant="destructive" onClick={() => signOutUser()}>
-        Cerrar sesión
-      </Button>
     </div>
   );
 }

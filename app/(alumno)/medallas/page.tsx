@@ -1,6 +1,7 @@
 "use client";
 
-import { Medal, Trophy } from "lucide-react";
+import { ArrowLeft, Medal, Trophy } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -107,7 +108,16 @@ export default function MedallasPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
-      <h1 className="font-heading text-xl font-semibold">Medallas</h1>
+      <header className="flex items-center gap-3 py-2">
+        <Link
+          href="/perfil"
+          aria-label="Volver"
+          className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
+        >
+          <ArrowLeft className="size-5" />
+        </Link>
+        <h1 className="font-heading text-xl font-semibold">Medallas</h1>
+      </header>
 
       {/* Stats banner */}
       <section className="flex flex-col gap-4 rounded-3xl bg-card-dark p-5 text-card-dark-foreground">

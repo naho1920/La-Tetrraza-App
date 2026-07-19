@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +31,17 @@ export default function EstadisticasPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+      <header className="flex items-center gap-3 py-2">
+        <Link
+          href="/"
+          aria-label="Volver"
+          className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
+        >
+          <ArrowLeft className="size-5" />
+        </Link>
+        <h1 className="font-heading text-xl font-semibold">Estadísticas</h1>
+      </header>
+
       <Card>
         <CardHeader>
           <CardTitle>Asistencia por horario (este mes)</CardTitle>

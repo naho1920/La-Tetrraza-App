@@ -180,9 +180,6 @@ export default function Home() {
           </BentoTile>
         </BentoGrid>
 
-        <Button variant="ghost" onClick={() => signOutUser()}>
-          Cerrar sesión
-        </Button>
       </div>
       <TabBar />
 

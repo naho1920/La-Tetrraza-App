@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Award,
   BellOff,
   CalendarX,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getNotificaciones, type IconoNotificacion, type Notificacion } from "./api";
@@ -38,6 +40,7 @@ function tiempoRelativo(fecha: Date | null): string | null {
 /** Bandeja de notificaciones; funciona para ambos roles según el userDoc. */
 export function ListaNotificaciones() {
   const { userDoc } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<Notificacion[] | null>(null);
 
   useEffect(() => {
@@ -57,7 +60,17 @@ export function ListaNotificaciones() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-      <h1 className="font-heading text-xl font-semibold">Notificaciones</h1>
+      <header className="flex items-center gap-3 py-2">
+        <button
+          type="button"
+          aria-label="Volver"
+          onClick={() => router.back()}
+          className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
+        >
+          <ArrowLeft className="size-5" />
+        </button>
+        <h1 className="font-heading text-xl font-semibold">Notificaciones</h1>
+      </header>
 
       {items === null ? (
         <div className="flex flex-col gap-2">

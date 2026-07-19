@@ -1,7 +1,9 @@
 "use client";
 
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -76,10 +78,19 @@ export default function FichaAlumnoPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
-      <div>
-        <h1 className="font-heading text-xl font-semibold">{alumno.nombre}</h1>
-        <p className="text-sm text-muted-foreground">{alumno.email}</p>
-      </div>
+      <header className="flex items-center gap-3 py-2">
+        <Link
+          href="/alumnos"
+          aria-label="Volver"
+          className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
+        >
+          <ArrowLeft className="size-5" />
+        </Link>
+        <div className="min-w-0">
+          <h1 className="font-heading text-xl font-semibold leading-tight">{alumno.nombre}</h1>
+          <p className="truncate text-sm text-muted-foreground">{alumno.email}</p>
+        </div>
+      </header>
 
       <Card>
         <CardHeader>
