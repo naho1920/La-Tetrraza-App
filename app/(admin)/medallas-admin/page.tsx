@@ -299,8 +299,13 @@ export default function AdminMedallasPage() {
 
   async function handleValidar(id: string, aprobado: boolean) {
     if (!userDoc) return;
-    await validarAchievement(id, userDoc.uid, aprobado);
-    cargar();
+    try {
+      await validarAchievement(id, userDoc.uid, aprobado);
+      toast(aprobado ? "Medalla aprobada." : "Logro rechazado.");
+      cargar();
+    } catch {
+      toast("No se pudo procesar el logro. Inténtalo de nuevo.", "error");
+    }
   }
 
   async function handleVerVideo(videoPath: string) {
@@ -309,8 +314,13 @@ export default function AdminMedallasPage() {
   }
 
   async function handlePin(id: string) {
-    await marcarPinEntregado(id);
-    cargar();
+    try {
+      await marcarPinEntregado(id);
+      toast("Pin marcado como entregado.");
+      cargar();
+    } catch {
+      toast("No se pudo marcar el pin. Inténtalo de nuevo.", "error");
+    }
   }
 
   return (

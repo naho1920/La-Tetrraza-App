@@ -4,6 +4,7 @@ import { CalendarPlus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MonthCalendar, type DayMarker } from "@/components/ui/month-calendar";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import {
   type BookingConAlumno,
@@ -185,12 +187,10 @@ function OneOffSessionCard() {
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState(String(CAPACIDAD_DEFAULT));
   const [saving, setSaving] = useState(false);
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setMensaje(null);
     try {
       await createOneOffSession({ fecha, hora, nombre, capacidad: Number(capacidad) });
       const legible = new Date(`${fecha}T00:00:00`).toLocaleDateString("es-EC", {
@@ -198,22 +198,21 @@ function OneOffSessionCard() {
         day: "numeric",
         month: "long",
       });
-      setMensaje(`Clase especial creada para el ${legible} a las ${hora} ✓`);
+      toast(`Clase especial creada para el ${legible} a las ${hora} ✓`);
       setFecha("");
       setHora("");
       setNombre("");
       setCapacidad(String(CAPACIDAD_DEFAULT));
+    } catch {
+      toast("No se pudo crear la clase especial. Inténtalo de nuevo.", "error");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <h2 className="font-semibold">Clase especial</h2>
-        <p className="text-xs text-muted-foreground">Para algo fuera del horario fijo.</p>
-      </div>
+    <CollapsibleSection title="Clase especial">
+      <p className="-mt-1 text-xs text-muted-foreground">Para algo fuera del horario fijo.</p>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
         <div className="col-span-2 flex flex-col gap-1.5">
           <Label htmlFor="fecha-sesion">Fecha</Label>
@@ -242,10 +241,7 @@ function OneOffSessionCard() {
           {saving ? "Creando…" : "Crear clase especial"}
         </Button>
       </form>
-      {mensaje && (
-        <p className="rounded-2xl bg-success/10 px-4 py-2.5 text-sm text-success">{mensaje}</p>
-      )}
-    </div>
+    </CollapsibleSection>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import { createSkill, listAllSkillsAdmin, updateSkill } from "@/features/medallas/api";
 import { PILARES } from "@/features/medallas/catalogo";
 import type { Pilar, Skill, TipoSkill } from "@/features/medallas/types";
@@ -177,14 +179,16 @@ function SkillForm({
             <Label htmlFor="hito-base">Hito</Label>
             <Input id="hito-base" required value={form.hitoBase} onChange={(e) => set("hitoBase", e.target.value)} />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-2">
+            <Switch
+              id="tiene-oro"
               checked={form.tieneOro}
-              onChange={(e) => set("tieneOro", e.target.checked)}
+              onCheckedChange={(v: boolean) => set("tieneOro", v)}
             />
-            Tiene una variante oro
-          </label>
+            <Label htmlFor="tiene-oro" className="cursor-pointer text-sm font-normal">
+              Tiene una variante oro
+            </Label>
+          </div>
           {form.tieneOro && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="hito-oro-insignia">Hito oro</Label>
@@ -199,14 +203,16 @@ function SkillForm({
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2">
+          <Switch
+            id="relativo-abw"
             checked={form.relativoABW}
-            onChange={(e) => set("relativoABW", e.target.checked)}
+            onCheckedChange={(v: boolean) => set("relativoABW", v)}
           />
-          Relativo al peso corporal
-        </label>
+          <Label htmlFor="relativo-abw" className="cursor-pointer text-sm font-normal">
+            Relativo al peso corporal
+          </Label>
+        </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="orden">Orden</Label>
           <Input id="orden" type="number" value={form.orden} onChange={(e) => set("orden", e.target.value)} />
@@ -236,6 +242,16 @@ export default function CatalogoMedallasPage() {
 
   useEffect(cargar, []);
 
+  async function handleToggleActiva(skill: Skill) {
+    try {
+      await updateSkill(skill.id, { activa: !skill.activa });
+      toast(skill.activa ? "Medalla desactivada." : "Medalla activada.");
+      cargar();
+    } catch {
+      toast("No se pudo actualizar la medalla. Inténtalo de nuevo.", "error");
+    }
+  }
+
   function openNew() {
     setEditando(null);
     setShowForm(true);
@@ -253,13 +269,14 @@ export default function CatalogoMedallasPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
-      <header className="flex items-center justify-between py-2">
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between gap-3 py-2">
+        <div className="flex items-center gap-3">
           <Link
             href="/medallas-admin"
-            className="text-muted-foreground hover:text-foreground"
+            aria-label="Volver"
+            className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
           >
-            <ChevronLeft className="size-5" />
+            <ArrowLeft className="size-5" />
           </Link>
           <h1 className="font-heading text-xl font-semibold">Catálogo de medallas</h1>
         </div>
@@ -276,7 +293,7 @@ export default function CatalogoMedallasPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>{editando ? "Editar medalla" : "Nueva medalla"}</CardTitle>
-              <Button type="button" size="icon" variant="ghost" onClick={closeForm}>
+              <Button type="button" size="icon" variant="ghost" aria-label="Cerrar formulario" onClick={closeForm}>
                 <X className="size-4" />
               </Button>
             </div>
@@ -310,7 +327,7 @@ export default function CatalogoMedallasPage() {
                 <Button
                   size="sm"
                   variant={skill.activa ? "outline" : "secondary"}
-                  onClick={() => updateSkill(skill.id, { activa: !skill.activa }).then(cargar)}
+                  onClick={() => handleToggleActiva(skill)}
                 >
                   {skill.activa ? "Desactivar" : "Activar"}
                 </Button>

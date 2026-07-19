@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
+import { toast } from "@/components/ui/toast";
 import { listActivatedUsers } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -61,20 +62,20 @@ function AsignarPlan({
   const [planId, setPlanId] = useState("");
   const [fechaInicio, setFechaInicio] = useState(toISODate(new Date()));
   const [saving, setSaving] = useState(false);
-  const [ok, setOk] = useState(false);
 
   async function handleAsignar() {
     const plan = plans.find((p) => p.id === planId);
     if (!uid || !plan) return;
     setSaving(true);
-    setOk(false);
     try {
       await assignMembership(uid, plan.id, fechaInicio, plan.duracionDias);
-      setOk(true);
+      toast("Plan asignado correctamente.");
       setUid("");
       setPlanId("");
       setFechaInicio(toISODate(new Date()));
       onAsignado();
+    } catch {
+      toast("No se pudo asignar el plan. Inténtalo de nuevo.", "error");
     } finally {
       setSaving(false);
     }
@@ -82,7 +83,7 @@ function AsignarPlan({
 
   return (
     <>
-      <Select value={uid} onValueChange={(v) => { setUid(v ?? ""); setOk(false); }}>
+      <Select value={uid} onValueChange={(v) => setUid(v ?? "")}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Alumno" />
         </SelectTrigger>
@@ -92,7 +93,7 @@ function AsignarPlan({
           ))}
         </SelectContent>
       </Select>
-      <Select value={planId} onValueChange={(v) => { setPlanId(v ?? ""); setOk(false); }}>
+      <Select value={planId} onValueChange={(v) => setPlanId(v ?? "")}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Plan" />
         </SelectTrigger>
@@ -116,7 +117,6 @@ function AsignarPlan({
       <Button disabled={saving || !uid || !planId} onClick={handleAsignar}>
         {saving ? "Asignando…" : "Asignar plan"}
       </Button>
-      {ok && <p className="text-sm text-success">Plan asignado correctamente ✓</p>}
     </>
   );
 }
@@ -152,9 +152,14 @@ function Comprobantes({ onRevisado }: { onRevisado: (uid: string) => void }) {
 
   async function handleMarcarRevisado(reporte: PaymentReport) {
     if (!userDoc) return;
-    await marcarRevisado(reporte, userDoc.uid);
-    onRevisado(reporte.uid);
-    cargar();
+    try {
+      await marcarRevisado(reporte, userDoc.uid);
+      toast("Comprobante marcado como revisado.");
+      onRevisado(reporte.uid);
+      cargar();
+    } catch {
+      toast("No se pudo marcar como revisado. Inténtalo de nuevo.", "error");
+    }
   }
 
   return (
@@ -261,9 +266,11 @@ function RegistrarPago({
     setSaving(true);
     try {
       await registerPayment(membershipId, uid, Number(monto), fecha, metodo, "");
-      setMensaje("Pago registrado ✓");
+      toast("Pago registrado.");
       setMonto("");
       setMetodo("");
+    } catch {
+      toast("No se pudo registrar el pago. Inténtalo de nuevo.", "error");
     } finally {
       setSaving(false);
     }
@@ -321,7 +328,7 @@ function RegistrarPago({
           </Button>
         </>
       )}
-      {mensaje && <p className="text-sm text-success">{mensaje}</p>}
+      {mensaje && <p className="text-sm text-warning">{mensaje}</p>}
     </>
   );
 }
@@ -346,13 +353,26 @@ function Planes({ plans, onChanged }: { plans: MembershipPlan[]; onChanged: () =
         duracionDias: Number(duracionDias),
         activo: true,
       });
+      toast(`Plan "${nombre}" creado.`);
       setNombre("");
       setPrecio("");
       setClasesIncluidas("");
       setDuracionDias("30");
       onChanged();
+    } catch {
+      toast("No se pudo crear el plan. Inténtalo de nuevo.", "error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleActivo(plan: MembershipPlan) {
+    try {
+      await updatePlan(plan.id, { activo: !plan.activo });
+      toast(plan.activo ? `${plan.nombre} desactivado.` : `${plan.nombre} activado.`);
+      onChanged();
+    } catch {
+      toast("No se pudo actualizar el plan. Inténtalo de nuevo.", "error");
     }
   }
 
@@ -371,7 +391,7 @@ function Planes({ plans, onChanged }: { plans: MembershipPlan[]; onChanged: () =
             <Button
               size="sm"
               variant={p.activo ? "outline" : "secondary"}
-              onClick={() => updatePlan(p.id, { activo: !p.activo }).then(onChanged)}
+              onClick={() => handleToggleActivo(p)}
             >
               {p.activo ? "Desactivar" : "Activar"}
             </Button>

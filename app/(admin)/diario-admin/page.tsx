@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -182,13 +182,14 @@ export default function DiarioAdminPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-      <header className="flex items-center justify-between py-2">
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between gap-3 py-2">
+        <div className="flex items-center gap-3">
           <Link
             href="/medallas-admin"
-            className="text-muted-foreground hover:text-foreground"
+            aria-label="Volver"
+            className="flex size-11 items-center justify-center rounded-full bg-card ring-1 ring-foreground/10 transition-colors active:bg-muted"
           >
-            <ChevronLeft className="size-5" />
+            <ArrowLeft className="size-5" />
           </Link>
           <h1 className="font-heading text-xl font-semibold">
             Diario — Métricas
@@ -213,6 +214,7 @@ export default function DiarioAdminPage() {
                   type="button"
                   size="icon"
                   variant="ghost"
+                  aria-label="Cerrar formulario"
                   onClick={() => setShowForm(false)}
                 >
                   <X className="size-4" />
@@ -226,8 +228,9 @@ export default function DiarioAdminPage() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <Label>Nombre del ejercicio</Label>
+                <Label htmlFor="metrica-nombre">Nombre del ejercicio</Label>
                 <Input
+                  id="metrica-nombre"
                   value={form.nombre}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, nombre: e.target.value }))
@@ -238,7 +241,7 @@ export default function DiarioAdminPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Unidad</Label>
+                <Label htmlFor="metrica-unidad">Unidad</Label>
                 <Select
                   value={form.unidad}
                   onValueChange={(v) =>
@@ -249,7 +252,7 @@ export default function DiarioAdminPage() {
                     }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="metrica-unidad">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,8 +300,9 @@ export default function DiarioAdminPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Orden</Label>
+                <Label htmlFor="metrica-orden">Orden</Label>
                 <Input
+                  id="metrica-orden"
                   type="number"
                   value={form.orden}
                   onChange={(e) =>
@@ -423,6 +427,7 @@ export default function DiarioAdminPage() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label="Editar métrica"
                       onClick={() => openEdit(metric)}
                     >
                       <Pencil className="size-4" />

@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import {
   type ApprovedEmail,
   addApprovedEmail,
@@ -84,7 +86,10 @@ export default function NuevoAlumnoPage() {
     setProcesandoUid(solicitud.uid);
     try {
       await aprobarSolicitud(solicitud);
+      toast(`${solicitud.nombre} ahora tiene acceso.`);
       await Promise.all([loadSolicitudes(), loadData()]);
+    } catch {
+      toast("No se pudo aprobar la solicitud. Inténtalo de nuevo.", "error");
     } finally {
       setProcesandoUid(null);
     }
@@ -94,7 +99,10 @@ export default function NuevoAlumnoPage() {
     setProcesandoUid(uid);
     try {
       await rechazarSolicitud(uid);
+      toast("Solicitud rechazada.");
       await loadSolicitudes();
+    } catch {
+      toast("No se pudo rechazar la solicitud. Inténtalo de nuevo.", "error");
     } finally {
       setProcesandoUid(null);
     }
@@ -106,6 +114,7 @@ export default function NuevoAlumnoPage() {
     setSaving(true);
     try {
       await addApprovedEmail(email);
+      toast(`Acceso concedido a ${email}.`);
       setEmail("");
       await loadData();
     } catch {
@@ -177,35 +186,6 @@ export default function NuevoAlumnoPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Agregar alumno</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Correo del alumno</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="alumno@correo.com"
-              />
-            </div>
-            <Button type="submit" disabled={saving || !email}>
-              {saving ? "Agregando…" : "Dar acceso"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Alumnos con acceso ({approved.length})</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -264,6 +244,30 @@ export default function NuevoAlumnoPage() {
           )}
         </CardContent>
       </Card>
+
+      <CollapsibleSection title="Agregar alumno">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">Correo del alumno</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="alumno@correo.com"
+            />
+          </div>
+          <Button type="submit" disabled={saving || !email}>
+            {saving ? "Agregando…" : "Dar acceso"}
+          </Button>
+        </form>
+      </CollapsibleSection>
 
       {rechazando && (
         <ConfirmDialog
