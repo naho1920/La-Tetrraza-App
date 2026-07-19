@@ -318,7 +318,7 @@ function LogDialog({
       }
 
       const fecha = todayISO();
-      await addActivityLog({
+      const id = await addActivityLog({
         uid,
         metricId: metric.id,
         valor,
@@ -336,7 +336,7 @@ function LogDialog({
       );
 
       const log: ActivityLog = {
-        id: crypto.randomUUID(),
+        id,
         uid,
         metricId: metric.id,
         valor,

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +32,7 @@ export default function NuevoAlumnoPage() {
   const [solicitudes, setSolicitudes] = useState<AccessRequest[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
   const [procesandoUid, setProcesandoUid] = useState<string | null>(null);
+  const [rechazando, setRechazando] = useState<AccessRequest | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -149,7 +151,7 @@ export default function NuevoAlumnoPage() {
                         size="sm"
                         variant="outline"
                         disabled={procesandoUid === solicitud.uid}
-                        onClick={() => handleRechazar(solicitud.uid)}
+                        onClick={() => setRechazando(solicitud)}
                       >
                         Rechazar
                       </Button>
@@ -258,6 +260,21 @@ export default function NuevoAlumnoPage() {
           )}
         </CardContent>
       </Card>
+
+      {rechazando && (
+        <ConfirmDialog
+          title="¿Rechazar esta solicitud?"
+          description={
+            <>
+              Se rechazará el acceso de <strong>{rechazando.nombre}</strong> ({rechazando.email}).
+              Podrá volver a solicitarlo más adelante.
+            </>
+          }
+          confirmLabel="Sí, rechazar"
+          onConfirm={() => handleRechazar(rechazando.uid).then(() => setRechazando(null))}
+          onCancel={() => setRechazando(null)}
+        />
+      )}
     </div>
   );
 }

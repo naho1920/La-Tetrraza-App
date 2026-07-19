@@ -4,6 +4,7 @@ import { CalendarPlus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -249,6 +250,7 @@ function OneOffSessionCard() {
 
 function InscritosDialog({ session, onClose }: { session: ClassSession; onClose: () => void }) {
   const [inscritos, setInscritos] = useState<BookingConAlumno[] | null>(null);
+  const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
   const cancelada = session.estado === "cancelada";
 
   useEffect(() => {
@@ -265,6 +267,7 @@ function InscritosDialog({ session, onClose }: { session: ClassSession; onClose:
   }
 
   return (
+    <>
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
@@ -309,13 +312,32 @@ function InscritosDialog({ session, onClose }: { session: ClassSession; onClose:
           <Button
             variant="destructive"
             className="w-full"
-            onClick={() => cancelSession(session.id).then(onClose)}
+            onClick={() => setConfirmandoCancelar(true)}
           >
             Cancelar esta clase
           </Button>
         )}
       </DialogContent>
     </Dialog>
+
+    {confirmandoCancelar && (
+      <ConfirmDialog
+        title="¿Cancelar esta clase?"
+        description={
+          <>
+            Se cancelará <strong>{session.hora} · {session.nombre}</strong>
+            {inscritos && inscritos.length > 0 && (
+              <> con <strong>{inscritos.length}</strong> {inscritos.length === 1 ? "alumno inscrito" : "alumnos inscritos"}</>
+            )}
+            . Esta acción no se puede deshacer.
+          </>
+        }
+        confirmLabel="Sí, cancelar clase"
+        onConfirm={() => cancelSession(session.id).then(() => { setConfirmandoCancelar(false); onClose(); })}
+        onCancel={() => setConfirmandoCancelar(false)}
+      />
+    )}
+    </>
   );
 }
 

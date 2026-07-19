@@ -130,10 +130,14 @@ function FormularioDialog({ form, onClose }: { form: NutritionForm; onClose: () 
 export default function AdminNutricionPage() {
   const [filtro, setFiltro] = useState<EstadoNutricion>("pendiente");
   const [forms, setForms] = useState<NutritionForm[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<NutritionForm | null>(null);
 
   function cargar() {
-    listFormsByEstado(filtro).then(setForms);
+    setCargando(true);
+    listFormsByEstado(filtro)
+      .then(setForms)
+      .finally(() => setCargando(false));
   }
 
   useEffect(cargar, [filtro]);
@@ -160,7 +164,13 @@ export default function AdminNutricionPage() {
 
       <Card>
         <CardContent>
-          {forms.length === 0 ? (
+          {cargando ? (
+            <div className="flex flex-col gap-2 py-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-11 animate-pulse rounded-lg bg-muted" />
+              ))}
+            </div>
+          ) : forms.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <ClipboardList className="size-5 text-muted-foreground" />

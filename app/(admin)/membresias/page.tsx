@@ -166,9 +166,13 @@ function Comprobantes({ onRevisado }: { onRevisado: (uid: string) => void }) {
   const [filtro, setFiltro] = useState<EstadoPago>("pendiente");
   const [reportes, setReportes] = useState<PaymentReport[]>([]);
   const [abriendoId, setAbriendoId] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   function cargar() {
-    listReportsByEstado(filtro).then(setReportes);
+    setCargando(true);
+    listReportsByEstado(filtro)
+      .then(setReportes)
+      .finally(() => setCargando(false));
   }
 
   useEffect(cargar, [filtro]);
@@ -205,7 +209,13 @@ function Comprobantes({ onRevisado }: { onRevisado: (uid: string) => void }) {
           </Button>
         ))}
       </div>
-      {reportes.length === 0 ? (
+      {cargando ? (
+        <div className="flex flex-col gap-2 py-1">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      ) : reportes.length === 0 ? (
         <p className="py-2 text-center text-sm text-muted-foreground">
           No hay comprobantes en esta categoría.
         </p>
@@ -478,10 +488,14 @@ export default function AdminMembresiasPage() {
   const [memberships, setMemberships] = useState<MembershipConAlumno[]>([]);
   const [filtro, setFiltro] = useState<EstadoMembresia | "todas">("todas");
   const [presetUid, setPresetUid] = useState<string | undefined>(undefined);
+  const [cargando, setCargando] = useState(true);
 
   function cargar() {
-    listAllPlansAdmin().then(setPlans);
-    listAllMembershipsWithAlumno().then(setMemberships);
+    setCargando(true);
+    Promise.all([
+      listAllPlansAdmin().then(setPlans),
+      listAllMembershipsWithAlumno().then(setMemberships),
+    ]).finally(() => setCargando(false));
   }
 
   useEffect(() => {
@@ -573,7 +587,13 @@ export default function AdminMembresiasPage() {
           </div>
 
           {/* List */}
-          {listaFiltrada.length === 0 ? (
+          {cargando ? (
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+              ))}
+            </div>
+          ) : listaFiltrada.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-muted">
                 <Users className="size-5 text-muted-foreground" />

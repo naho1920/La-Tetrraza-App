@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ErrorState } from "@/components/ui/error-state";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getFormForUser, getOrCreateDraftForm, getPlanesForUser } from "@/features/nutricion/api";
@@ -18,9 +19,11 @@ export default function NutricionPage() {
   const [plan, setPlan] = useState<NutritionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [reenviando, setReenviando] = useState(false);
+  const [errorCarga, setErrorCarga] = useState(false);
 
   async function cargar() {
     if (!userDoc) return;
+    setErrorCarga(false);
     try {
       const existente = await getFormForUser(userDoc.uid);
       if (existente) {
@@ -37,6 +40,8 @@ export default function NutricionPage() {
         estaturaCm: userDoc.estaturaCm ? String(userDoc.estaturaCm) : "",
       });
       setForm(nuevo);
+    } catch {
+      setErrorCarga(true);
     } finally {
       setLoading(false);
     }
@@ -67,36 +72,49 @@ export default function NutricionPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-      {form && !form.enviado ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Formulario de nutrición</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NutritionFormWizard form={form} onEnviado={cargar} />
-          </CardContent>
-        </Card>
-      ) : form ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Tu plan alimenticio</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <NutritionStatusStepper estado={form.estado} />
-            {form.estado === "en_revision" && (
-              <p className="text-sm text-muted-foreground">
-                Tu coach está revisando tu formulario. Te avisamos apenas tengas tu plan listo.
-              </p>
-            )}
-            {form.estado === "plan_enviado" && plan && <PlanViewer plan={plan} />}
-            {form.estado === "plan_enviado" && (
-              <Button variant="outline" disabled={reenviando} onClick={handleActualizarFormulario}>
-                {reenviando ? "Un momento…" : "Actualizar formulario (mis objetivos cambiaron)"}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Nutrición</h1>
+      </header>
+
+      {errorCarga && (
+        <ErrorState
+          mensaje="No se pudo cargar tu información de nutrición."
+          onReintentar={cargar}
+        />
+      )}
+
+      {!errorCarga && form && (
+        form.enviado ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Tu plan alimenticio</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <NutritionStatusStepper estado={form.estado} />
+              {form.estado === "en_revision" && (
+                <p className="text-sm text-muted-foreground">
+                  Tu coach está revisando tu formulario. Te avisamos apenas tengas tu plan listo.
+                </p>
+              )}
+              {form.estado === "plan_enviado" && plan && <PlanViewer plan={plan} />}
+              {form.estado === "plan_enviado" && (
+                <Button variant="outline" disabled={reenviando} onClick={handleActualizarFormulario}>
+                  {reenviando ? "Un momento…" : "Actualizar formulario (mis objetivos cambiaron)"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Formulario de nutrición</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NutritionFormWizard form={form} onEnviado={cargar} />
+            </CardContent>
+          </Card>
+        )
+      )}
     </div>
   );
 }

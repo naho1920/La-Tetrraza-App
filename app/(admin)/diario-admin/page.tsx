@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -87,6 +88,7 @@ export default function DiarioAdminPage() {
   const [form, setForm] = useState<MetricFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState<TrackingMetric | null>(null);
 
   useEffect(() => {
     load();
@@ -174,7 +176,6 @@ export default function DiarioAdminPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta métrica?")) return;
     await deleteMetric(id);
     setMetrics((prev) => prev.filter((m) => m.id !== id));
   }
@@ -429,8 +430,9 @@ export default function DiarioAdminPage() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label="Eliminar métrica"
                       className="text-destructive"
-                      onClick={() => handleDelete(metric.id)}
+                      onClick={() => setEliminando(metric)}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -471,6 +473,21 @@ export default function DiarioAdminPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {eliminando && (
+        <ConfirmDialog
+          title="¿Eliminar esta métrica?"
+          description={
+            <>
+              Se eliminará <strong>{eliminando.nombre}</strong>. Los registros ya hechos por los
+              alumnos no se borran, pero dejarán de poder registrar en este ejercicio.
+            </>
+          }
+          confirmLabel="Sí, eliminar"
+          onConfirm={() => handleDelete(eliminando.id).then(() => setEliminando(null))}
+          onCancel={() => setEliminando(null)}
+        />
       )}
     </div>
   );

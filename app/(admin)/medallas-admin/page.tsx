@@ -8,6 +8,7 @@ import { Award, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -305,14 +306,19 @@ export default function AdminMedallasPage() {
   const [vista, setVista] = useState<Vista>("pendientes");
   const [pendientes, setPendientes] = useState<Achievement[]>([]);
   const [pines, setPines] = useState<Achievement[]>([]);
+  const [cargando, setCargando] = useState(true);
   const skills = useSkillsMap();
 
   const lista = vista === "pendientes" ? pendientes : vista === "pines" ? pines : [];
   const nombres = useNombresAlumnos(lista.map((a) => a.uid));
+  const [rechazando, setRechazando] = useState<Achievement | null>(null);
 
   function cargar() {
-    listAchievementsByEstado("pendiente").then(setPendientes);
-    listPinesPendientes().then(setPines);
+    setCargando(true);
+    Promise.all([
+      listAchievementsByEstado("pendiente").then(setPendientes),
+      listPinesPendientes().then(setPines),
+    ]).finally(() => setCargando(false));
   }
 
   useEffect(cargar, []);
@@ -371,6 +377,12 @@ export default function AdminMedallasPage() {
         <CardContent>
           {vista === "cerca" ? (
             <CercaDeMedalla skills={skills} />
+          ) : cargando ? (
+            <div className="flex flex-col gap-2 py-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+              ))}
+            </div>
           ) : lista.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-muted">
@@ -406,7 +418,7 @@ export default function AdminMedallasPage() {
                         <Button size="sm" onClick={() => handleValidar(a.id, true)}>
                           Aprobar
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleValidar(a.id, false)}>
+                        <Button size="sm" variant="destructive" onClick={() => setRechazando(a)}>
                           Rechazar
                         </Button>
                       </>
@@ -422,6 +434,22 @@ export default function AdminMedallasPage() {
           )}
         </CardContent>
       </Card>
+
+      {rechazando && (
+        <ConfirmDialog
+          title="¿Rechazar este logro?"
+          description={
+            <>
+              Se rechazará {tituloMedalla(skills[rechazando.skillId], rechazando.nivel)} de{" "}
+              <strong>{nombres[rechazando.uid] ?? "este alumno"}</strong>. El alumno podrá volver a
+              intentarlo.
+            </>
+          }
+          confirmLabel="Sí, rechazar"
+          onConfirm={() => handleValidar(rechazando.id, false).then(() => setRechazando(null))}
+          onCancel={() => setRechazando(null)}
+        />
+      )}
     </div>
   );
 }
