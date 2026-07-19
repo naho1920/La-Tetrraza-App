@@ -7,6 +7,8 @@ import { ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import {
   Dialog,
   DialogContent,
@@ -149,18 +151,15 @@ export default function AdminNutricionPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
-      <div className="flex gap-2">
-        {FILTROS.map(({ estado, label }) => (
-          <Button
-            key={estado}
-            size="sm"
-            variant={filtro === estado ? "default" : "outline"}
-            onClick={() => setFiltro(estado)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Nutrición</h1>
+      </header>
+
+      <SegmentedTabs
+        value={filtro}
+        onChange={setFiltro}
+        options={FILTROS.map(({ estado, label }) => ({ value: estado, label }))}
+      />
 
       <Card>
         <CardContent>
@@ -171,12 +170,7 @@ export default function AdminNutricionPage() {
               ))}
             </div>
           ) : forms.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-                <ClipboardList className="size-5 text-muted-foreground" />
-              </span>
-              <p className="text-sm text-muted-foreground">No hay formularios en esta categoría.</p>
-            </div>
+            <EmptyState icon={ClipboardList} message="No hay formularios en esta categoría." />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {forms.map((form) => (

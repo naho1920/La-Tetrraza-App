@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { listActivatedUsers } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -42,46 +44,6 @@ type Tab = "estado" | "acciones";
 
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
-}
-
-// ── Collapsible section ────────────────────────────────────────────────────────
-
-function Section({
-  title,
-  badge,
-  children,
-}: {
-  title: string;
-  badge?: string | number;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-xl border bg-card">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
-      >
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">{title}</span>
-          {badge !== undefined && badge !== "" && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              {badge}
-            </span>
-          )}
-        </div>
-        {open ? (
-          <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
-      {open && (
-        <div className="border-t px-4 pb-4 pt-3 flex flex-col gap-3">{children}</div>
-      )}
-    </div>
-  );
 }
 
 // ── Asignar plan ───────────────────────────────────────────────────────────────
@@ -216,7 +178,7 @@ function Comprobantes({ onRevisado }: { onRevisado: (uid: string) => void }) {
           ))}
         </div>
       ) : reportes.length === 0 ? (
-        <p className="py-2 text-center text-sm text-muted-foreground">
+        <p className="py-4 text-center text-sm text-muted-foreground">
           No hay comprobantes en esta categoría.
         </p>
       ) : (
@@ -520,33 +482,18 @@ export default function AdminMembresiasPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
-      <h1 className="font-heading text-xl font-semibold">Membresías</h1>
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Membresías</h1>
+      </header>
 
-      {/* Tab bar */}
-      <div className="flex rounded-xl bg-muted p-1 gap-1">
-        <button
-          onClick={() => setTab("estado")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "estado"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Estado
-        </button>
-        <button
-          onClick={() => setTab("acciones")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "acciones"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Acciones
-        </button>
-      </div>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "estado", label: "Estado" },
+          { value: "acciones", label: "Acciones" },
+        ]}
+      />
 
       {/* Tab: Estado */}
       {tab === "estado" && (
@@ -594,12 +541,7 @@ export default function AdminMembresiasPage() {
               ))}
             </div>
           ) : listaFiltrada.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-                <Users className="size-5 text-muted-foreground" />
-              </span>
-              <p className="text-sm text-muted-foreground">No hay membresías en esta categoría.</p>
-            </div>
+            <EmptyState icon={Users} message="No hay membresías en esta categoría." />
           ) : (
             <div className="flex flex-col divide-y rounded-xl border">
               {listaFiltrada.map(({ membership, alumno, plan }) => {
@@ -629,21 +571,21 @@ export default function AdminMembresiasPage() {
       {/* Tab: Acciones */}
       {tab === "acciones" && (
         <div className="flex flex-col gap-2">
-          <Section title="Asignar plan">
+          <CollapsibleSection title="Asignar plan">
             <AsignarPlan alumnos={alumnos} plans={plans} onAsignado={cargar} />
-          </Section>
+          </CollapsibleSection>
 
-          <Section title="Comprobantes de pago">
+          <CollapsibleSection title="Comprobantes de pago">
             <Comprobantes onRevisado={handleRevisado} />
-          </Section>
+          </CollapsibleSection>
 
-          <Section title="Registrar pago">
+          <CollapsibleSection title="Registrar pago">
             <RegistrarPago alumnos={alumnos} presetUid={presetUid} />
-          </Section>
+          </CollapsibleSection>
 
-          <Section title="Planes del box" badge={plans.filter(p => p.activo).length}>
+          <CollapsibleSection title="Planes del box" badge={plans.filter(p => p.activo).length}>
             <Planes plans={plans} onChanged={cargar} />
-          </Section>
+          </CollapsibleSection>
         </div>
       )}
     </div>

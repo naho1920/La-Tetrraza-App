@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CalendarOff } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { MonthCalendar, type DayMarker } from "@/components/ui/month-calendar";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -74,7 +75,9 @@ export default function HorariosPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-      <h1 className="font-heading text-xl font-semibold">Horarios</h1>
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Horarios</h1>
+      </header>
 
       <MonthCalendar
         month={month}
@@ -88,12 +91,11 @@ export default function HorariosPage() {
         <p className="text-sm font-semibold capitalize text-muted-foreground">{tituloDia}</p>
 
         {sesionesDelDia.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-card px-6 py-12 text-center ring-1 ring-foreground/10">
-            <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-              <CalendarOff className="size-5 text-muted-foreground" />
-            </span>
-            <p className="text-sm text-muted-foreground">No hay clases este día. Elige un día con punto morado 💜</p>
-          </div>
+          <EmptyState
+            icon={CalendarOff}
+            message="No hay clases este día. Elige un día con punto morado 💜"
+            className="rounded-3xl bg-card px-6 py-12 ring-1 ring-foreground/10"
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {sesionesDelDia.map((session) => (

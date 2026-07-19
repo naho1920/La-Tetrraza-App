@@ -125,6 +125,10 @@ export default function NuevoAlumnoPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Alumnos</h1>
+      </header>
+
       {(loadingSolicitudes || solicitudes.length > 0) && (
         <Card>
           <CardHeader>

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowLeft, ChevronDown, ChevronUp, CreditCard, Receipt } from "lucide-react";
+import { ArrowLeft, CreditCard, Receipt } from "lucide-react";
 import Link from "next/link";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
@@ -20,44 +22,6 @@ import type { Membership, MembershipPlan, Payment } from "@/features/membresias/
 import { getReportsForUser } from "@/features/pagos/api";
 import { ReportarPagoDialog } from "@/features/pagos/reportar-pago-dialog";
 import type { PaymentReport } from "@/features/pagos/types";
-
-function Collapsible({
-  title,
-  badge,
-  children,
-}: {
-  title: string;
-  badge?: string | number;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-xl border bg-card">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
-      >
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">{title}</span>
-          {badge !== undefined && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {badge}
-            </span>
-          )}
-        </div>
-        {open ? (
-          <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
-      {open && (
-        <div className="border-t px-4 pb-4 pt-3">{children}</div>
-      )}
-    </div>
-  );
-}
 
 export default function MembresiaPage() {
   const { userDoc } = useAuth();
@@ -166,7 +130,7 @@ export default function MembresiaPage() {
 
       {/* Comprobantes enviados */}
       {reportes.length > 0 && (
-        <Collapsible title="Comprobantes enviados" badge={reportes.length}>
+        <CollapsibleSection title="Comprobantes enviados" badge={reportes.length}>
           <ul className="flex flex-col divide-y divide-border">
             {reportes.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
@@ -177,16 +141,13 @@ export default function MembresiaPage() {
               </li>
             ))}
           </ul>
-        </Collapsible>
+        </CollapsibleSection>
       )}
 
       {/* Historial de pagos */}
-      <Collapsible title="Historial de pagos" badge={pagos.length > 0 ? pagos.length : undefined}>
+      <CollapsibleSection title="Historial de pagos" badge={pagos.length > 0 ? pagos.length : undefined}>
         {pagos.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-4 text-center">
-            <Receipt className="size-6 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Todavía no hay pagos registrados.</p>
-          </div>
+          <EmptyState icon={Receipt} message="Todavía no hay pagos registrados." className="py-4" />
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {pagos.map((pago) => (
@@ -198,10 +159,10 @@ export default function MembresiaPage() {
             ))}
           </ul>
         )}
-      </Collapsible>
+      </CollapsibleSection>
 
       {/* Planes disponibles */}
-      <Collapsible title="Planes del box" badge={planesDisponibles.length}>
+      <CollapsibleSection title="Planes del box" badge={planesDisponibles.length}>
         <ul className="flex flex-col divide-y divide-border">
           {planesDisponibles.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
@@ -213,7 +174,7 @@ export default function MembresiaPage() {
             </li>
           ))}
         </ul>
-      </Collapsible>
+      </CollapsibleSection>
     </div>
   );
 }

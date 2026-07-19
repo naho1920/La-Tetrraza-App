@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getNotificaciones, type IconoNotificacion, type Notificacion } from "./api";
 
@@ -79,14 +80,11 @@ export function ListaNotificaciones() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-card px-6 py-12 text-center ring-1 ring-foreground/10">
-          <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <BellOff className="size-5 text-muted-foreground" />
-          </span>
-          <p className="text-sm text-muted-foreground">
-            Estás al día — no tienes notificaciones pendientes 🎉
-          </p>
-        </div>
+        <EmptyState
+          icon={BellOff}
+          message="Estás al día — no tienes notificaciones pendientes 🎉"
+          className="rounded-3xl bg-card px-6 py-12 ring-1 ring-foreground/10"
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {items.map((n) => {

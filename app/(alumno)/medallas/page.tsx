@@ -11,8 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MedalBadge } from "@/components/ui/medal-badge";
 import { PageSkeleton } from "@/components/ui/skeleton";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { textoHito } from "@/features/medallas/bw";
 import { CATALOGO_MEDALLAS, PILARES } from "@/features/medallas/catalogo";
@@ -143,31 +145,14 @@ export default function MedallasPage() {
         </div>
       </section>
 
-      {/* Tabs */}
-      <div className="flex rounded-xl bg-muted p-1 gap-1">
-        <button
-          onClick={() => setTab("catalogo")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "catalogo"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Catálogo
-        </button>
-        <button
-          onClick={() => setTab("logros")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "logros"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Mis logros ({logradas})
-        </button>
-      </div>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "catalogo", label: "Catálogo" },
+          { value: "logros", label: `Mis logros (${logradas})` },
+        ]}
+      />
 
       {/* Tab: catálogo */}
       {tab === "catalogo" && (
@@ -191,14 +176,7 @@ export default function MedallasPage() {
       {tab === "logros" && (
         <section className="flex flex-col gap-2">
           {misLogros.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-muted">
-                <Trophy className="size-7 text-muted-foreground" />
-              </span>
-              <p className="text-sm text-muted-foreground">
-                Aún no tienes medallas ganadas. ¡Sigue entrenando!
-              </p>
-            </div>
+            <EmptyState icon={Trophy} message="Aún no tienes medallas ganadas. ¡Sigue entrenando!" />
           ) : (
             <div className="flex flex-col divide-y rounded-xl border">
               {misLogros.map((a) => (

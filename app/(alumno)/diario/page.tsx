@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
@@ -687,9 +688,10 @@ export default function DiarioPage() {
 
       {/* Catálogo de ejercicios */}
       {visibleMetrics.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">
-          No hay ejercicios disponibles aún. Tu coach los publicará pronto.
-        </div>
+        <EmptyState
+          icon={Dumbbell}
+          message="No hay ejercicios disponibles aún. Tu coach los publicará pronto."
+        />
       ) : (
         <section className="flex flex-col gap-2">
           {wods.length > 0 && (

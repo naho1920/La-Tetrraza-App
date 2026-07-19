@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MonthCalendar, type DayMarker } from "@/components/ui/month-calendar";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { cn } from "@/lib/utils";
 import {
   type BookingConAlumno,
@@ -391,33 +392,18 @@ export default function AdminClasesPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col gap-4 p-4 pb-8">
-      <h1 className="font-heading text-xl font-semibold">Clases</h1>
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Clases</h1>
+      </header>
 
-      {/* Tab bar */}
-      <div className="flex rounded-xl bg-muted p-1 gap-1">
-        <button
-          onClick={() => setTab("calendario")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "calendario"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Calendario
-        </button>
-        <button
-          onClick={() => setTab("plantillas")}
-          className={cn(
-            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
-            tab === "plantillas"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Plantillas
-        </button>
-      </div>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "calendario", label: "Calendario" },
+          { value: "plantillas", label: "Plantillas" },
+        ]}
+      />
 
       {/* Tab: calendario */}
       {tab === "calendario" && (

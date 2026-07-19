@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Award, ChevronDown, ChevronUp } from "lucide-react";
+import { Award } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import {
   Select,
   SelectContent,
@@ -34,7 +37,6 @@ import { getUserDoc } from "@/features/perfil/api";
 import type { UserDoc } from "@/features/auth/types";
 
 function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
-  const [open, setOpen] = useState(false);
   const [alumnos, setAlumnos] = useState<UserDoc[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [uid, setUid] = useState("");
@@ -42,11 +44,11 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   const [nivel, setNivel] = useState("");
   const [otorgando, setOtorgando] = useState(false);
 
-  useEffect(() => {
+  function handleOpenChange(open: boolean) {
     if (!open) return;
     listActivatedUsers().then((users) => setAlumnos(users.filter((u) => u.rol === "alumno")));
     listAllSkillsAdmin().then(setSkills);
-  }, [open]);
+  }
 
   const skillSeleccionado = skills.find((s) => s.id === skillId) ?? null;
 
@@ -59,7 +61,6 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
       setNivel("");
       setSkillId("");
       setUid("");
-      setOpen(false);
     } catch {
       toast("No se pudo otorgar la medalla. Inténtalo de nuevo.", "error");
     } finally {
@@ -68,76 +69,58 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <CardTitle>Otorgar medalla manualmente</CardTitle>
-          {open ? (
-            <ChevronUp className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="size-4 text-muted-foreground" />
-          )}
-        </button>
-      </CardHeader>
-      {open && (
-        <CardContent className="flex flex-col gap-3 pt-0">
-          <Select value={uid} onValueChange={(v) => setUid(v ?? "")}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Alumno" />
-            </SelectTrigger>
-            <SelectContent>
-              {alumnos.map((a) => (
-                <SelectItem key={a.uid} value={a.uid}>
-                  {a.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <CollapsibleSection title="Otorgar medalla manualmente" onOpenChange={handleOpenChange}>
+      <Select value={uid} onValueChange={(v) => setUid(v ?? "")}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Alumno" />
+        </SelectTrigger>
+        <SelectContent>
+          {alumnos.map((a) => (
+            <SelectItem key={a.uid} value={a.uid}>
+              {a.nombre}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-          <Select
-            value={skillId}
-            onValueChange={(v) => {
-              setSkillId(v ?? "");
-              setNivel("");
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Medalla" />
-            </SelectTrigger>
-            <SelectContent>
-              {skills.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.nombreMedalla}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <Select
+        value={skillId}
+        onValueChange={(v) => {
+          setSkillId(v ?? "");
+          setNivel("");
+        }}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Medalla" />
+        </SelectTrigger>
+        <SelectContent>
+          {skills.map((s) => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.nombreMedalla}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-          {skillSeleccionado && (
-            <Select value={nivel} onValueChange={(v) => setNivel(v ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Nivel" />
-              </SelectTrigger>
-              <SelectContent>
-                {skillSeleccionado.nivelesDisponibles.map((n) => (
-                  <SelectItem key={n} value={n}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          <Button disabled={otorgando || !uid || !skillId || !nivel} onClick={handleOtorgar}>
-            {otorgando ? "Otorgando…" : "Otorgar medalla"}
-          </Button>
-        </CardContent>
+      {skillSeleccionado && (
+        <Select value={nivel} onValueChange={(v) => setNivel(v ?? "")}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Nivel" />
+          </SelectTrigger>
+          <SelectContent>
+            {skillSeleccionado.nivelesDisponibles.map((n) => (
+              <SelectItem key={n} value={n}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
-    </Card>
+
+      <Button disabled={otorgando || !uid || !skillId || !nivel} onClick={handleOtorgar}>
+        {otorgando ? "Otorgando…" : "Otorgar medalla"}
+      </Button>
+    </CollapsibleSection>
   );
 }
 
@@ -234,16 +217,7 @@ function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
   filas.sort((a, b) => b.progreso - a.progreso);
 
   if (filas.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-          <Award className="size-5 text-muted-foreground" />
-        </span>
-        <p className="text-sm text-muted-foreground">
-          Nadie está cerca de una medalla en este momento.
-        </p>
-      </div>
-    );
+    return <EmptyState icon={Award} message="Nadie está cerca de una medalla en este momento." />;
   }
 
   return (
@@ -331,7 +305,7 @@ export default function AdminMedallasPage() {
 
   async function handleVerVideo(videoPath: string) {
     const url = await obtenerUrlVideo(videoPath);
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   async function handlePin(id: string) {
@@ -341,34 +315,27 @@ export default function AdminMedallasPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+      <header className="flex items-center gap-3 py-2">
+        <h1 className="font-heading text-xl font-semibold">Medallas</h1>
+      </header>
+
       {userDoc && <OtorgarMedallaCard adminUid={userDoc.uid} />}
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant={vista === "pendientes" ? "default" : "outline"}
-          onClick={() => setVista("pendientes")}
-        >
-          Por validar ({pendientes.length})
-        </Button>
-        <Button
-          size="sm"
-          variant={vista === "pines" ? "default" : "outline"}
-          onClick={() => setVista("pines")}
-        >
-          Pines ({pines.length})
-        </Button>
-        <Button
-          size="sm"
-          variant={vista === "cerca" ? "default" : "outline"}
-          onClick={() => setVista("cerca")}
-        >
-          Cerca 🎯
-        </Button>
-        <Button render={<Link href="/medallas-admin/catalogo" />} size="sm" variant="ghost">
+      <SegmentedTabs
+        value={vista}
+        onChange={setVista}
+        options={[
+          { value: "pendientes", label: `Por validar (${pendientes.length})` },
+          { value: "pines", label: `Pines (${pines.length})` },
+          { value: "cerca", label: "Cerca 🎯" },
+        ]}
+      />
+
+      <div className="flex gap-2">
+        <Button render={<Link href="/medallas-admin/catalogo" />} size="sm" variant="outline" className="flex-1">
           Catálogo
         </Button>
-        <Button render={<Link href="/diario-admin" />} size="sm" variant="ghost">
+        <Button render={<Link href="/diario-admin" />} size="sm" variant="outline" className="flex-1">
           Diario
         </Button>
       </div>
@@ -384,14 +351,10 @@ export default function AdminMedallasPage() {
               ))}
             </div>
           ) : lista.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <span className="flex size-12 items-center justify-center rounded-full bg-muted">
-                <Award className="size-5 text-muted-foreground" />
-              </span>
-              <p className="text-sm text-muted-foreground">
-                {vista === "pendientes" ? "No hay logros por validar." : "No hay pines pendientes de entregar."}
-              </p>
-            </div>
+            <EmptyState
+              icon={Award}
+              message={vista === "pendientes" ? "No hay logros por validar." : "No hay pines pendientes de entregar."}
+            />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {lista.map((a) => (
