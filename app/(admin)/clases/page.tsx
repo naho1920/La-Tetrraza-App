@@ -4,7 +4,6 @@ import { CalendarPlus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -32,10 +31,8 @@ import { addDays, toISODate } from "@/features/reservas/date-utils";
 import { HorarioSemanal } from "@/features/reservas/horario-semanal";
 import type { ClassSession, ClassTemplate } from "@/features/reservas/types";
 
-/**
- * Diálogo "Generar clases": la coach marca los días de los próximos 14 y las
- * sesiones se crean a partir de sus plantillas activas para esos días.
- */
+type Tab = "calendario" | "plantillas";
+
 function GenerarClasesDialog({
   templates,
   fechasConClases,
@@ -112,8 +109,8 @@ function GenerarClasesDialog({
 
         {activas.length === 0 ? (
           <p className="rounded-2xl bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
-            Todavía no tienes un horario semanal activo. Configúralo primero en la sección
-            &ldquo;Horario semanal&rdquo; de esta pantalla.
+            Todavía no tienes un horario semanal activo. Configúralo en la pestaña
+            &ldquo;Plantillas&rdquo; de esta pantalla.
           </p>
         ) : (
           <>
@@ -157,8 +154,7 @@ function GenerarClasesDialog({
               })}
             </div>
             <p className="text-xs text-muted-foreground">
-              &ldquo;✓ listo&rdquo; = ese día ya tiene clases publicadas; volver a generarlo no las
-              duplica.
+              &ldquo;✓ listo&rdquo; = ese día ya tiene clases publicadas; volver a generarlo no las duplica.
             </p>
 
             {mensaje && <p className="text-sm text-success">{mensaje}</p>}
@@ -200,7 +196,7 @@ function OneOffSessionCard() {
         day: "numeric",
         month: "long",
       });
-      setMensaje(`Clase especial creada para el ${legible} a las ${hora} ✓ — ya está en el calendario.`);
+      setMensaje(`Clase especial creada para el ${legible} a las ${hora} ✓`);
       setFecha("");
       setHora("");
       setNombre("");
@@ -211,49 +207,43 @@ function OneOffSessionCard() {
   }
 
   return (
-    <Card className="rounded-3xl">
-      <CardHeader>
-        <CardTitle>Clase especial (una sola fecha)</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Para algo fuera del horario fijo — por ejemplo, un sábado de entrenamiento especial.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-          {/* Fecha ocupa toda la fila: los selectores nativos de fecha
-              necesitan más ancho del que cabe compartiendo columna. */}
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="fecha-sesion">Fecha</Label>
-            <Input id="fecha-sesion" type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="hora-sesion">Hora</Label>
-            <Input id="hora-sesion" type="time" required value={hora} onChange={(e) => setHora(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="capacidad-sesion">Capacidad</Label>
-            <Input
-              id="capacidad-sesion"
-              type="number"
-              min={1}
-              required
-              value={capacidad}
-              onChange={(e) => setCapacidad(e.target.value)}
-            />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="nombre-sesion">Nombre de la clase</Label>
-            <Input id="nombre-sesion" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          </div>
-          <Button type="submit" className="col-span-2 self-end" disabled={saving}>
-            {saving ? "Creando…" : "Crear clase especial"}
-          </Button>
-        </form>
-        {mensaje && (
-          <p className="mt-3 rounded-2xl bg-success/10 px-4 py-2.5 text-sm text-success">{mensaje}</p>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-3">
+      <div>
+        <h2 className="font-semibold">Clase especial</h2>
+        <p className="text-xs text-muted-foreground">Para algo fuera del horario fijo.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <Label htmlFor="fecha-sesion">Fecha</Label>
+          <Input id="fecha-sesion" type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="hora-sesion">Hora</Label>
+          <Input id="hora-sesion" type="time" required value={hora} onChange={(e) => setHora(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="capacidad-sesion">Capacidad</Label>
+          <Input
+            id="capacidad-sesion"
+            type="number"
+            min={1}
+            required
+            value={capacidad}
+            onChange={(e) => setCapacidad(e.target.value)}
+          />
+        </div>
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <Label htmlFor="nombre-sesion">Nombre de la clase</Label>
+          <Input id="nombre-sesion" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        </div>
+        <Button type="submit" className="col-span-2" disabled={saving}>
+          {saving ? "Creando…" : "Crear clase especial"}
+        </Button>
+      </form>
+      {mensaje && (
+        <p className="rounded-2xl bg-success/10 px-4 py-2.5 text-sm text-success">{mensaje}</p>
+      )}
+    </div>
   );
 }
 
@@ -330,6 +320,7 @@ function InscritosDialog({ session, onClose }: { session: ClassSession; onClose:
 }
 
 export default function AdminClasesPage() {
+  const [tab, setTab] = useState<Tab>("calendario");
   const [templates, setTemplates] = useState<ClassTemplate[]>([]);
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => toISODate(new Date()));
@@ -380,57 +371,93 @@ export default function AdminClasesPage() {
     <div className="flex w-full flex-1 flex-col gap-4 p-4 pb-8">
       <h1 className="font-heading text-xl font-semibold">Clases</h1>
 
-      <section className="flex items-center gap-4 rounded-3xl bg-card-dark p-5 text-card-dark-foreground">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/25">
-          <Sparkles className="size-5 text-primary-light" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="font-heading text-base font-semibold">Genera tus clases</h2>
-          <p className="text-xs text-card-dark-foreground/60">
-            Elige los días y se publican según tu horario semanal.
-          </p>
-        </div>
-        <Button
-          variant="on-dark"
-          className="shrink-0"
-          onClick={() => setMostrarGenerar(true)}
+      {/* Tab bar */}
+      <div className="flex rounded-xl bg-muted p-1 gap-1">
+        <button
+          onClick={() => setTab("calendario")}
+          className={cn(
+            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+            tab === "calendario"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
-          <CalendarPlus className="size-4" data-icon="inline-start" />
-          Generar
-        </Button>
-      </section>
-
-      <MonthCalendar
-        month={month}
-        onMonthChange={setMonth}
-        selected={selected}
-        onSelect={setSelected}
-        markers={markers}
-      />
-
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold capitalize text-muted-foreground">{tituloDia}</p>
-        {sesionesDelDia.length === 0 ? (
-          <div className="rounded-3xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            No hay clases publicadas este día. Usa &ldquo;Generar&rdquo; para crearlas desde tu
-            horario semanal.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {sesionesDelDia.map((session) => (
-              <ClassCard
-                key={session.id}
-                session={session}
-                reservada={false}
-                onOpen={() => setSeleccionadaId(session.id)}
-              />
-            ))}
-          </div>
-        )}
+          Calendario
+        </button>
+        <button
+          onClick={() => setTab("plantillas")}
+          className={cn(
+            "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+            tab === "plantillas"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Plantillas
+        </button>
       </div>
 
-      <HorarioSemanal templates={templates} onChanged={loadTemplates} />
-      <OneOffSessionCard />
+      {/* Tab: calendario */}
+      {tab === "calendario" && (
+        <>
+          <section className="flex items-center gap-4 rounded-3xl bg-card-dark p-5 text-card-dark-foreground">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/25">
+              <Sparkles className="size-5 text-primary-light" />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <h2 className="font-heading text-base font-semibold">Genera tus clases</h2>
+              <p className="text-xs text-card-dark-foreground/60">
+                Elige los días y se publican según tu horario.
+              </p>
+            </div>
+            <Button
+              variant="on-dark"
+              className="shrink-0"
+              onClick={() => setMostrarGenerar(true)}
+            >
+              <CalendarPlus className="size-4" data-icon="inline-start" />
+              Generar
+            </Button>
+          </section>
+
+          <MonthCalendar
+            month={month}
+            onMonthChange={setMonth}
+            selected={selected}
+            onSelect={setSelected}
+            markers={markers}
+          />
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold capitalize text-muted-foreground">{tituloDia}</p>
+            {sesionesDelDia.length === 0 ? (
+              <div className="rounded-3xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
+                No hay clases publicadas este día. Usa &ldquo;Generar&rdquo; para crearlas.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {sesionesDelDia.map((session) => (
+                  <ClassCard
+                    key={session.id}
+                    session={session}
+                    reservada={false}
+                    onOpen={() => setSeleccionadaId(session.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Tab: plantillas */}
+      {tab === "plantillas" && (
+        <div className="flex flex-col gap-6">
+          <HorarioSemanal templates={templates} onChanged={loadTemplates} />
+          <div className="h-px bg-border" />
+          <OneOffSessionCard />
+        </div>
+      )}
 
       {seleccionada && (
         <InscritosDialog session={seleccionada} onClose={() => setSeleccionadaId(null)} />

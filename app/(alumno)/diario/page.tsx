@@ -1,9 +1,8 @@
 "use client";
 
 import { Check, Clock, Dumbbell, Plus, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -21,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
@@ -30,7 +30,13 @@ import {
   listLogsForUser,
   secsToDisplay,
 } from "@/features/diario/api";
-import type { ActivityLog, AudienciaTag, DiarioAchievement, TrackingMetric } from "@/features/diario/types";
+import type {
+  ActivityLog,
+  AudienciaTag,
+  DiarioAchievement,
+  NivelDiario,
+  TrackingMetric,
+} from "@/features/diario/types";
 import type { UserDoc } from "@/features/auth/types";
 
 function todayISO(): string {
@@ -48,8 +54,6 @@ function formatFecha(fecha: string): string {
 function metricVisiblePara(metric: TrackingMetric, user: UserDoc): boolean {
   const audiencia: AudienciaTag[] = metric.audiencia ?? ["todos"];
   if (audiencia.includes("todos")) return true;
-
-  // Cada tag debe cumplirse (AND). Si el campo del perfil es null, se ignora ese tag.
   for (const tag of audiencia) {
     if (tag === "mujeres" && user.sexo !== null && user.sexo !== "femenino") return false;
     if (tag === "hombres" && user.sexo !== null && user.sexo !== "masculino") return false;
@@ -57,18 +61,6 @@ function metricVisiblePara(metric: TrackingMetric, user: UserDoc): boolean {
     if (tag === "avanzados" && user.nivel != null && user.nivel !== "avanzado") return false;
   }
   return true;
-}
-
-function audienciaLabel(audiencia: AudienciaTag[] | undefined): string | null {
-  if (!audiencia || audiencia.includes("todos")) return null;
-  const map: Record<AudienciaTag, string> = {
-    todos: "Todos",
-    mujeres: "Mujeres",
-    hombres: "Hombres",
-    principiantes: "Principiantes",
-    avanzados: "Avanzados",
-  };
-  return audiencia.map((t) => map[t]).join(" · ");
 }
 
 function unidadLabel(unidad: TrackingMetric["unidad"]): string {
@@ -81,6 +73,147 @@ function nivelColor(nivel: string): string {
   if (nivel === "oro") return "text-yellow-500";
   if (nivel === "plata") return "text-slate-400";
   return "text-amber-600";
+}
+
+function nivelLabel(nivel: NivelDiario): string {
+  if (nivel === "oro") return "🥇 Oro";
+  if (nivel === "plata") return "🥈 Plata";
+  return "🥉 Bronce";
+}
+
+function nextThresholdInfo(
+  metric: TrackingMetric,
+  best: number | undefined
+): { nivel: NivelDiario; target: number; progress: number; allDone: boolean } | null {
+  if (best === undefined) return null;
+  const dir = metric.direccion;
+  const niveles: NivelDiario[] = ["bronce", "plata", "oro"];
+  for (const nivel of niveles) {
+    const threshold = metric.umbrales[nivel];
+    if (threshold === 0) continue;
+    const achieved =
+      dir === "mayor_es_mejor" ? best >= threshold : best <= threshold;
+    if (!achieved) {
+      const progress =
+        dir === "mayor_es_mejor" ? best / threshold : threshold / best;
+      return {
+        nivel,
+        target: threshold,
+        progress: Math.min(0.99, Math.max(0.04, progress)),
+        allDone: false,
+      };
+    }
+  }
+  return { nivel: "oro", target: metric.umbrales.oro, progress: 1, allDone: true };
+}
+
+// ── Metric catalog card ────────────────────────────────────────────────────────
+
+function MetricCard({
+  metric,
+  best,
+  doneToday,
+  onRegister,
+}: {
+  metric: TrackingMetric;
+  best: number | undefined;
+  doneToday: boolean;
+  onRegister: () => void;
+}) {
+  const info = nextThresholdInfo(metric, best);
+
+  const bestDisplay =
+    best !== undefined
+      ? metric.unidad === "tiempo"
+        ? secsToDisplay(best)
+        : `${best} ${metric.unidad}`
+      : null;
+
+  const targetDisplay =
+    info && !info.allDone
+      ? metric.unidad === "tiempo"
+        ? secsToDisplay(info.target)
+        : `${info.target} ${metric.unidad}`
+      : null;
+
+  return (
+    <Card className={metric.publicadaHoy ? "border-primary/40 bg-primary/[0.03]" : ""}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            {metric.unidad === "tiempo" ? (
+              <Clock className="size-5 text-primary" />
+            ) : (
+              <Dumbbell className="size-5 text-primary" />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="font-medium leading-tight">{metric.nombre}</p>
+              {metric.publicadaHoy && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  WOD hoy
+                </span>
+              )}
+              {doneToday && (
+                <span className="flex items-center gap-0.5 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-600">
+                  <Check className="size-3" />
+                  listo
+                </span>
+              )}
+            </div>
+
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              🥉{" "}
+              {metric.unidad === "tiempo"
+                ? secsToDisplay(metric.umbrales.bronce)
+                : metric.umbrales.bronce}{" "}
+              · 🥈{" "}
+              {metric.unidad === "tiempo"
+                ? secsToDisplay(metric.umbrales.plata)
+                : metric.umbrales.plata}{" "}
+              · 🥇{" "}
+              {metric.unidad === "tiempo"
+                ? secsToDisplay(metric.umbrales.oro)
+                : metric.umbrales.oro}{" "}
+              {unidadLabel(metric.unidad)}
+            </p>
+
+            {info && !info.allDone && bestDisplay && targetDisplay && (
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Tu mejor: <strong className="text-foreground">{bestDisplay}</strong></span>
+                  <span>Meta {nivelLabel(info.nivel)}: <strong className="text-foreground">{targetDisplay}</strong></span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${info.progress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {info?.allDone && (
+              <p className="mt-1 text-[11px] text-yellow-500 font-medium">
+                🥇 ¡Todos los niveles completados!
+              </p>
+            )}
+          </div>
+
+          <Button
+            size="sm"
+            variant={doneToday ? "outline" : "default"}
+            className="shrink-0"
+            onClick={onRegister}
+          >
+            {doneToday ? <Check className="size-4" /> : "Registrar"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 // ── Celebration modal ──────────────────────────────────────────────────────────
@@ -331,6 +464,23 @@ export default function DiarioPage() {
       .finally(() => setDataLoading(false));
   }, [userDoc]);
 
+  const bestByMetric = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const log of logs) {
+      const metric = metrics.find((m) => m.id === log.metricId);
+      if (!metric) continue;
+      const current = result[log.metricId];
+      if (current === undefined) {
+        result[log.metricId] = log.valor;
+      } else if (metric.direccion === "mayor_es_mejor") {
+        result[log.metricId] = Math.max(current, log.valor);
+      } else {
+        result[log.metricId] = Math.min(current, log.valor);
+      }
+    }
+    return result;
+  }, [logs, metrics]);
+
   function handleLogged(log: ActivityLog, nuevas: DiarioAchievement[]) {
     setLogs((prev) => [log, ...prev]);
     setShowLogDialog(false);
@@ -347,11 +497,15 @@ export default function DiarioPage() {
   if (!userDoc) return null;
 
   const visibleMetrics = metrics.filter((m) => metricVisiblePara(m, userDoc));
-  const wods = visibleMetrics.filter((m) => m.publicadaHoy);
   const today = todayISO();
   const loggedToday = new Set(
     logs.filter((l) => l.fecha === today).map((l) => l.metricId)
   );
+
+  // WODs first, then the rest
+  const wods = visibleMetrics.filter((m) => m.publicadaHoy);
+  const otros = visibleMetrics.filter((m) => !m.publicadaHoy);
+  const ordenados = [...wods, ...otros];
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
@@ -369,79 +523,38 @@ export default function DiarioPage() {
         </Button>
       </header>
 
-      {/* WODs del día */}
-      {wods.length > 0 && (
+      {/* Catálogo de ejercicios */}
+      {visibleMetrics.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          No hay ejercicios disponibles aún. Tu coach los publicará pronto.
+        </div>
+      ) : (
         <section className="flex flex-col gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            WODs del día
-          </h2>
-          <div className="flex flex-col gap-2">
-            {wods.map((metric) => {
-              const done = loggedToday.has(metric.id);
-              return (
-                <Card key={metric.id} className={done ? "opacity-60" : ""}>
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      {metric.unidad === "tiempo" ? (
-                        <Clock className="size-5 shrink-0 text-primary" />
-                      ) : (
-                        <Dumbbell className="size-5 shrink-0 text-primary" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{metric.nombre}</p>
-                        <p className="text-xs text-muted-foreground">
-                          🥉{" "}
-                          {metric.unidad === "tiempo"
-                            ? secsToDisplay(metric.umbrales.bronce)
-                            : metric.umbrales.bronce}{" "}
-                          · 🥈{" "}
-                          {metric.unidad === "tiempo"
-                            ? secsToDisplay(metric.umbrales.plata)
-                            : metric.umbrales.plata}{" "}
-                          · 🥇{" "}
-                          {metric.unidad === "tiempo"
-                            ? secsToDisplay(metric.umbrales.oro)
-                            : metric.umbrales.oro}{" "}
-                          {unidadLabel(metric.unidad)}
-                        </p>
-                        {audienciaLabel(metric.audiencia) && (
-                          <p className="text-xs text-primary/70">
-                            👥 {audienciaLabel(metric.audiencia)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    {done ? (
-                      <Check className="size-5 shrink-0 text-green-500" />
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openLogFor(metric)}
-                      >
-                        Anotar
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          {wods.length > 0 && (
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              WODs del día · Otros ejercicios
+            </h2>
+          )}
+          {ordenados.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              metric={metric}
+              best={bestByMetric[metric.id]}
+              doneToday={loggedToday.has(metric.id)}
+              onRegister={() => openLogFor(metric)}
+            />
+          ))}
         </section>
       )}
 
-      {/* Historial */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Registros recientes
-        </h2>
-        {logs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Aún no tienes registros. ¡Empieza hoy!
-          </p>
-        ) : (
+      {/* Historial reciente */}
+      {logs.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Registros recientes
+          </h2>
           <div className="flex flex-col divide-y rounded-xl border">
-            {logs.slice(0, 30).map((log) => {
+            {logs.slice(0, 20).map((log) => {
               const metric = metrics.find((m) => m.id === log.metricId);
               return (
                 <div
@@ -470,8 +583,8 @@ export default function DiarioPage() {
               );
             })}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {showLogDialog && (
         <LogDialog

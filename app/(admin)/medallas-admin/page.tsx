@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Award } from "lucide-react";
+import { Award, ChevronDown, ChevronUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { getUserDoc } from "@/features/perfil/api";
 import type { UserDoc } from "@/features/auth/types";
 
 function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
+  const [open, setOpen] = useState(false);
   const [alumnos, setAlumnos] = useState<UserDoc[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [uid, setUid] = useState("");
@@ -41,9 +42,10 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
   const [otorgando, setOtorgando] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     listActivatedUsers().then((users) => setAlumnos(users.filter((u) => u.rol === "alumno")));
     listAllSkillsAdmin().then(setSkills);
-  }, []);
+  }, [open]);
 
   const skillSeleccionado = skills.find((s) => s.id === skillId) ?? null;
 
@@ -54,6 +56,9 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
       await otorgarMedallaManual(adminUid, uid, skillId, nivel);
       toast("¡Medalla otorgada! El alumno la verá celebrada en su próxima visita.");
       setNivel("");
+      setSkillId("");
+      setUid("");
+      setOpen(false);
     } catch {
       toast("No se pudo otorgar la medalla. Inténtalo de nuevo.", "error");
     } finally {
@@ -63,61 +68,74 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Otorgar medalla manualmente</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Select value={uid} onValueChange={(v) => setUid(v ?? "")}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Alumno" />
-          </SelectTrigger>
-          <SelectContent>
-            {alumnos.map((a) => (
-              <SelectItem key={a.uid} value={a.uid}>
-                {a.nombre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={skillId}
-          onValueChange={(v) => {
-            setSkillId(v ?? "");
-            setNivel("");
-          }}
+      <CardHeader className="pb-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between"
+          onClick={() => setOpen((v) => !v)}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Medalla" />
-          </SelectTrigger>
-          <SelectContent>
-            {skills.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.nombreMedalla}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {skillSeleccionado && (
-          <Select value={nivel} onValueChange={(v) => setNivel(v ?? "")}>
+          <CardTitle>Otorgar medalla manualmente</CardTitle>
+          {open ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </button>
+      </CardHeader>
+      {open && (
+        <CardContent className="flex flex-col gap-3 pt-0">
+          <Select value={uid} onValueChange={(v) => setUid(v ?? "")}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Nivel" />
+              <SelectValue placeholder="Alumno" />
             </SelectTrigger>
             <SelectContent>
-              {skillSeleccionado.nivelesDisponibles.map((n) => (
-                <SelectItem key={n} value={n}>
-                  {n}
+              {alumnos.map((a) => (
+                <SelectItem key={a.uid} value={a.uid}>
+                  {a.nombre}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
 
-        <Button disabled={otorgando || !uid || !skillId || !nivel} onClick={handleOtorgar}>
-          {otorgando ? "Otorgando…" : "Otorgar medalla"}
-        </Button>
-      </CardContent>
+          <Select
+            value={skillId}
+            onValueChange={(v) => {
+              setSkillId(v ?? "");
+              setNivel("");
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Medalla" />
+            </SelectTrigger>
+            <SelectContent>
+              {skills.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nombreMedalla}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {skillSeleccionado && (
+            <Select value={nivel} onValueChange={(v) => setNivel(v ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Nivel" />
+              </SelectTrigger>
+              <SelectContent>
+                {skillSeleccionado.nivelesDisponibles.map((n) => (
+                  <SelectItem key={n} value={n}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Button disabled={otorgando || !uid || !skillId || !nivel} onClick={handleOtorgar}>
+            {otorgando ? "Otorgando…" : "Otorgar medalla"}
+          </Button>
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -153,11 +171,6 @@ function useNombresAlumnos(uids: string[]) {
   return nombres;
 }
 
-/**
- * TASK-065: muestra qué alumnos están cerca de alcanzar el siguiente nivel
- * de una medalla de Fuerza, basándose en el `pesoLevantadoKg` que declararon
- * al reclamar sus achievements más recientes.
- */
 function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -172,8 +185,6 @@ function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
 
   if (cargando) return <p className="py-4 text-sm text-muted-foreground">Cargando…</p>;
 
-  // Por cada achievement con pesoLevantadoKg, calcular cuánto falta para el
-  // siguiente nivel. Solo se muestran los que están entre 70 % y 99 %.
   type FilaCerca = {
     achievementId: string;
     uid: string;
@@ -195,7 +206,7 @@ function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
 
     const niveles = skill.nivelesDisponibles;
     const idxActual = niveles.indexOf(a.nivel);
-    if (idxActual < 0 || idxActual === niveles.length - 1) continue; // último nivel → ya está en el top
+    if (idxActual < 0 || idxActual === niveles.length - 1) continue;
 
     const nivelSiguiente = niveles[idxActual + 1];
     const multStr = skill.hitos[nivelSiguiente];
@@ -204,7 +215,7 @@ function CercaDeMedalla({ skills }: { skills: Record<string, Skill> }) {
 
     const umbral = Math.round(a.pesoAlReclamo * mult * 10) / 10;
     const progreso = a.pesoLevantadoKg / umbral;
-    if (progreso < 0.7 || progreso >= 1) continue; // fuera del rango de interés
+    if (progreso < 0.7 || progreso >= 1) continue;
 
     filas.push({
       achievementId: a.id,
@@ -266,10 +277,6 @@ function tituloMedalla(skill: Skill | undefined, nivel: string) {
   return nivel === "base" ? skill.nombreMedalla : `${skill.nombreMedalla} — ${nivel}`;
 }
 
-/**
- * TASK-063: muestra el umbral calculado para medallas de Fuerza con relativoABW.
- * Formato: "declara 120 kg · umbral plata 97.5 kg ✅" o "❌" si no llega.
- */
 function UmbralFuerza({ achievement, skill }: { achievement: Achievement; skill: Skill | undefined }) {
   if (!skill?.relativoABW || achievement.pesoLevantadoKg == null) return null;
   const multiplicadorStr = skill.hitos[achievement.nivel];
@@ -330,7 +337,7 @@ export default function AdminMedallasPage() {
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
       {userDoc && <OtorgarMedallaCard adminUid={userDoc.uid} />}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
           variant={vista === "pendientes" ? "default" : "outline"}
@@ -343,7 +350,7 @@ export default function AdminMedallasPage() {
           variant={vista === "pines" ? "default" : "outline"}
           onClick={() => setVista("pines")}
         >
-          Pines pendientes ({pines.length})
+          Pines ({pines.length})
         </Button>
         <Button
           size="sm"

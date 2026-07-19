@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronLeft, Plus, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -212,11 +214,9 @@ function SkillForm({
       </div>
 
       <div className="flex gap-2">
-        {editando && (
-          <Button type="button" variant="outline" className="flex-1" onClick={onCancelar}>
-            Cancelar
-          </Button>
-        )}
+        <Button type="button" variant="outline" className="flex-1" onClick={onCancelar}>
+          Cancelar
+        </Button>
         <Button type="submit" className="flex-1" disabled={saving}>
           {saving ? "Guardando…" : editando ? "Guardar cambios" : "Crear medalla"}
         </Button>
@@ -228,6 +228,7 @@ function SkillForm({
 export default function CatalogoMedallasPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [editando, setEditando] = useState<Skill | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   function cargar() {
     listAllSkillsAdmin().then(setSkills);
@@ -235,24 +236,64 @@ export default function CatalogoMedallasPage() {
 
   useEffect(cargar, []);
 
+  function openNew() {
+    setEditando(null);
+    setShowForm(true);
+  }
+
+  function openEdit(skill: Skill) {
+    setEditando(skill);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setEditando(null);
+    setShowForm(false);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>{editando ? "Editar medalla" : "Nueva medalla"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SkillForm
-            key={editando?.id ?? "new"}
-            editando={editando}
-            onGuardado={() => {
-              setEditando(null);
-              cargar();
-            }}
-            onCancelar={() => setEditando(null)}
-          />
-        </CardContent>
-      </Card>
+      <header className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/medallas-admin"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="size-5" />
+          </Link>
+          <h1 className="font-heading text-xl font-semibold">Catálogo de medallas</h1>
+        </div>
+        {!showForm && (
+          <Button size="sm" onClick={openNew}>
+            <Plus className="size-4" />
+            Nueva
+          </Button>
+        )}
+      </header>
+
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>{editando ? "Editar medalla" : "Nueva medalla"}</CardTitle>
+              <Button type="button" size="icon" variant="ghost" onClick={closeForm}>
+                <X className="size-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <SkillForm
+              key={editando?.id ?? "new"}
+              editando={editando}
+              onGuardado={() => {
+                closeForm();
+                cargar();
+              }}
+              onCancelar={closeForm}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -262,7 +303,7 @@ export default function CatalogoMedallasPage() {
           <ul className="flex flex-col divide-y divide-border">
             {skills.map((skill) => (
               <li key={skill.id} className="flex items-center justify-between gap-3 py-2.5">
-                <button className="flex-1 text-left text-sm" onClick={() => setEditando(skill)}>
+                <button className="flex-1 text-left text-sm" onClick={() => openEdit(skill)}>
                   {skill.nombreMedalla}
                   {!skill.activa && <Badge variant="outline" className="ml-2">inactiva</Badge>}
                 </button>
