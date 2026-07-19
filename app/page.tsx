@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Award, CalendarDays, Scale, UtensilsCrossed, Wallet } from "lucide-react";
+import { ArrowUpRight, Award, CalendarDays, LogOut, Scale, UtensilsCrossed, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -113,6 +113,9 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <NotificationsBell />
+            <Button variant="ghost" size="icon" aria-label="Cerrar sesión" onClick={() => signOutUser()}>
+              <LogOut className="size-4" />
+            </Button>
           </div>
         </header>
 
