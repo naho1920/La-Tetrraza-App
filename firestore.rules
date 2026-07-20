@@ -276,6 +276,27 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Links de invitación: la admin los crea/lista/revoca directo desde el
+    // cliente (ya es admin). El canje lo hace un usuario SIN aprobar todavía,
+    // así que nunca puede tocar esta colección directo — pasa siempre por el
+    // route handler /api/invitaciones/redimir con Firebase Admin SDK, que
+    // ignora estas rules. Aquí solo protegemos las operaciones de la admin y
+    // ponemos límites sanos por si el cliente se manipula.
+    match /inviteLinks/{token} {
+      allow read: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.creadoPor == request.auth.uid
+        && request.resource.data.activo == true
+        && request.resource.data.usosActuales == 0
+        && request.resource.data.usosMaximos is int
+        && request.resource.data.usosMaximos > 0
+        && request.resource.data.usosMaximos <= 100
+        && request.resource.data.expiraAt > request.time;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Todavía no hay más colecciones activas: se agregan rules por fase,
     // junto con cada feature (ver roadmap-la-terraza.md).
     match /{document=**} {

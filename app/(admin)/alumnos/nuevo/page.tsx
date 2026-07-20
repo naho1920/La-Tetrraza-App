@@ -24,10 +24,13 @@ import {
   reactivarAcceso,
   rechazarSolicitud,
 } from "@/features/admin/api";
+import { useAuth } from "@/features/auth/AuthProvider";
 import type { AccessRequest } from "@/features/auth/approval";
 import type { UserDoc } from "@/features/auth/types";
+import { InviteManager } from "@/features/invitaciones/invite-manager";
 
 export default function NuevoAlumnoPage() {
+  const { userDoc } = useAuth();
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,13 +119,14 @@ export default function NuevoAlumnoPage() {
 
   async function handleToggleActivo(item: ApprovedEmail) {
     const deshabilitado = item.activo === false;
+    const activated = usersByEmail.get(item.email);
     setProcesandoEmail(item.email);
     try {
       if (deshabilitado) {
-        await reactivarAcceso(item.email);
+        await reactivarAcceso(item.email, activated?.uid);
         toast(`${item.email} puede volver a entrar.`);
       } else {
-        await desactivarAcceso(item.email);
+        await desactivarAcceso(item.email, activated?.uid);
         toast(`${item.email} fue deshabilitado.`);
       }
       await loadData();
@@ -303,6 +307,12 @@ export default function NuevoAlumnoPage() {
           )}
         </CardContent>
       </Card>
+
+      {userDoc && (
+        <CollapsibleSection title="Invitar por link">
+          <InviteManager adminUid={userDoc.uid} />
+        </CollapsibleSection>
+      )}
 
       <CollapsibleSection title="Agregar alumno">
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">

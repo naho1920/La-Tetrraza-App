@@ -23,13 +23,21 @@ export interface ApprovedEmail {
   activo?: boolean;
 }
 
-/** Bloquea el acceso sin borrar el registro, para poder reactivarlo luego. */
-export async function desactivarAcceso(email: string) {
+/**
+ * Bloquea el acceso sin borrar el registro, para poder reactivarlo luego.
+ * También apaga `users/{uid}.aprobado` porque las Firestore Security Rules
+ * usan ese campo (no `approvedEmails`) para autorizar todas las lecturas y
+ * escrituras del resto de la app — sin esto, un alumno ya activado seguiría
+ * pudiendo leer/escribir datos si su sesión ya estaba cargada en el navegador.
+ */
+export async function desactivarAcceso(email: string, uid?: string) {
   await updateDoc(doc(db, "approvedEmails", email), { activo: false });
+  if (uid) await updateDoc(doc(db, "users", uid), { aprobado: false });
 }
 
-export async function reactivarAcceso(email: string) {
+export async function reactivarAcceso(email: string, uid?: string) {
   await updateDoc(doc(db, "approvedEmails", email), { activo: true });
+  if (uid) await updateDoc(doc(db, "users", uid), { aprobado: true });
 }
 
 /** Quita al alumno de la lista de acceso y borra su perfil (no su historial). */
