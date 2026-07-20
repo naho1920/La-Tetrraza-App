@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Award } from "lucide-react";
@@ -125,6 +126,12 @@ function OtorgarMedallaCard({ adminUid }: { adminUid: string }) {
 }
 
 type Vista = "pendientes" | "pines" | "cerca";
+
+const VISTAS_VALIDAS: Vista[] = ["pendientes", "pines", "cerca"];
+
+function vistaDesdeParam(valor: string | null): Vista {
+  return VISTAS_VALIDAS.includes(valor as Vista) ? (valor as Vista) : "pendientes";
+}
 
 function useSkillsMap() {
   const [skills, setSkills] = useState<Record<string, Skill>>({});
@@ -277,7 +284,8 @@ function UmbralFuerza({ achievement, skill }: { achievement: Achievement; skill:
 
 export default function AdminMedallasPage() {
   const { userDoc } = useAuth();
-  const [vista, setVista] = useState<Vista>("pendientes");
+  const searchParams = useSearchParams();
+  const [vista, setVista] = useState<Vista>(() => vistaDesdeParam(searchParams.get("vista")));
   const [pendientes, setPendientes] = useState<Achievement[]>([]);
   const [pines, setPines] = useState<Achievement[]>([]);
   const [cargando, setCargando] = useState(true);

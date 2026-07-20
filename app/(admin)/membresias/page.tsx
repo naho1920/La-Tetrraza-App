@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Users } from "lucide-react";
@@ -42,6 +43,19 @@ import { listReportsByEstado, marcarRevisado, obtenerUrlComprobante } from "@/fe
 import type { EstadoPago, PaymentReport } from "@/features/pagos/types";
 
 type Tab = "estado" | "acciones";
+
+const TABS_VALIDOS: Tab[] = ["estado", "acciones"];
+const FILTROS_VALIDOS: (EstadoMembresia | "todas")[] = ["todas", "activa", "por_vencer", "vencida"];
+
+function tabDesdeParam(valor: string | null): Tab {
+  return TABS_VALIDOS.includes(valor as Tab) ? (valor as Tab) : "estado";
+}
+
+function filtroDesdeParam(valor: string | null): EstadoMembresia | "todas" {
+  return FILTROS_VALIDOS.includes(valor as EstadoMembresia | "todas")
+    ? (valor as EstadoMembresia | "todas")
+    : "todas";
+}
 
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -464,11 +478,15 @@ const FILTROS_ESTADO: { estado: EstadoMembresia | "todas"; label: string }[] = [
 ];
 
 export default function AdminMembresiasPage() {
-  const [tab, setTab] = useState<Tab>("estado");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => tabDesdeParam(searchParams.get("tab")));
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [alumnos, setAlumnos] = useState<UserDoc[]>([]);
   const [memberships, setMemberships] = useState<MembershipConAlumno[]>([]);
-  const [filtro, setFiltro] = useState<EstadoMembresia | "todas">("todas");
+  const [filtro, setFiltro] = useState<EstadoMembresia | "todas">(() =>
+    filtroDesdeParam(searchParams.get("filtro"))
+  );
+  const abrirComprobantes = searchParams.get("open") === "comprobantes";
   const [presetUid, setPresetUid] = useState<string | undefined>(undefined);
   const [cargando, setCargando] = useState(true);
 
@@ -595,7 +613,7 @@ export default function AdminMembresiasPage() {
             <AsignarPlan alumnos={alumnos} plans={plans} onAsignado={cargar} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Comprobantes de pago">
+          <CollapsibleSection title="Comprobantes de pago" defaultOpen={abrirComprobantes}>
             <Comprobantes onRevisado={handleRevisado} />
           </CollapsibleSection>
 

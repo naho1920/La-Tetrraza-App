@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -312,30 +313,33 @@ export default function CatalogoMedallasPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catálogo ({skills.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col divide-y divide-border">
-            {skills.map((skill) => (
-              <li key={skill.id} className="flex items-center justify-between gap-3 py-2.5">
-                <button className="flex-1 text-left text-sm" onClick={() => openEdit(skill)}>
-                  {skill.nombreMedalla}
-                  {!skill.activa && <Badge variant="outline" className="ml-2">inactiva</Badge>}
-                </button>
-                <Button
-                  size="sm"
-                  variant={skill.activa ? "outline" : "secondary"}
-                  onClick={() => handleToggleActiva(skill)}
-                >
-                  {skill.activa ? "Desactivar" : "Activar"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-2">
+        {PILARES.map(({ pilar, label }) => {
+          const skillsPilar = skills.filter((s) => s.pilar === pilar);
+          if (skillsPilar.length === 0) return null;
+          return (
+            <CollapsibleSection key={pilar} title={label} badge={skillsPilar.length}>
+              <ul className="flex flex-col divide-y divide-border">
+                {skillsPilar.map((skill) => (
+                  <li key={skill.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <button className="flex-1 text-left text-sm" onClick={() => openEdit(skill)}>
+                      {skill.nombreMedalla}
+                      {!skill.activa && <Badge variant="outline" className="ml-2">inactiva</Badge>}
+                    </button>
+                    <Button
+                      size="sm"
+                      variant={skill.activa ? "outline" : "secondary"}
+                      onClick={() => handleToggleActiva(skill)}
+                    >
+                      {skill.activa ? "Desactivar" : "Activar"}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </CollapsibleSection>
+          );
+        })}
+      </div>
     </div>
   );
 }

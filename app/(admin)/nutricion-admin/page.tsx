@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ClipboardList } from "lucide-react";
@@ -129,8 +130,15 @@ function FormularioDialog({ form, onClose }: { form: NutritionForm; onClose: () 
   );
 }
 
+const ESTADOS_VALIDOS: EstadoNutricion[] = ["pendiente", "en_revision", "plan_enviado"];
+
+function estadoDesdeParam(valor: string | null): EstadoNutricion {
+  return ESTADOS_VALIDOS.includes(valor as EstadoNutricion) ? (valor as EstadoNutricion) : "pendiente";
+}
+
 export default function AdminNutricionPage() {
-  const [filtro, setFiltro] = useState<EstadoNutricion>("pendiente");
+  const searchParams = useSearchParams();
+  const [filtro, setFiltro] = useState<EstadoNutricion>(() => estadoDesdeParam(searchParams.get("estado")));
   const [forms, setForms] = useState<NutritionForm[]>([]);
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<NutritionForm | null>(null);

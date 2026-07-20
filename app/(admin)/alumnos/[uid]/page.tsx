@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageSkeleton } from "@/components/ui/skeleton";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
 import { listAchievementsForUser, listSkills } from "@/features/medallas/api";
@@ -35,10 +36,13 @@ async function getBookingsForUser(uid: string): Promise<Booking[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }));
 }
 
+type Tab = "progreso" | "salud" | "cuenta";
+
 export default function FichaAlumnoPage() {
   const params = useParams<{ uid: string }>();
   const uid = params.uid;
 
+  const [tab, setTab] = useState<Tab>("progreso");
   const [alumno, setAlumno] = useState<UserDoc | null>(null);
   const [pesoLogs, setPesoLogs] = useState<WeightLog[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -92,123 +96,143 @@ export default function FichaAlumnoPage() {
         </div>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Perfil</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2 text-sm">
-          <span className="text-muted-foreground">Estatura</span>
-          <span>{alumno.estaturaCm ? `${alumno.estaturaCm} cm` : "—"}</span>
-          <span className="text-muted-foreground">Meta</span>
-          <span>{alumno.meta ?? "—"}</span>
-          <span className="text-muted-foreground">Lesiones</span>
-          <span>{alumno.lesiones?.join(", ") || "—"}</span>
-          <span className="text-muted-foreground">Alergias</span>
-          <span>{alumno.alergias?.join(", ") || "—"}</span>
-        </CardContent>
-      </Card>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "progreso", label: "Progreso" },
+          { value: "salud", label: "Salud" },
+          { value: "cuenta", label: "Cuenta" },
+        ]}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Evolución de peso</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <WeightChart logs={pesoLogs} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Asistencia</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {porcentajeAsistencia === null ? (
-            <p className="text-sm text-muted-foreground">Todavía no hay asistencias marcadas.</p>
-          ) : (
-            <p className="text-2xl font-semibold">
-              {porcentajeAsistencia}%{" "}
-              <span className="text-sm font-normal text-muted-foreground">
-                ({asistencias} asistió / {faltas} faltó)
-              </span>
-            </p>
-          )}
-          {historialReciente.length > 0 && (
-            <ul className="mt-3 flex flex-col divide-y divide-border text-sm">
-              {historialReciente.map((b) => (
-                <li key={b.id} className="flex items-center justify-between py-1.5">
-                  <span>
-                    {b.fecha} · {b.hora}
+      {tab === "progreso" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Asistencia</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {porcentajeAsistencia === null ? (
+                <p className="text-sm text-muted-foreground">Todavía no hay asistencias marcadas.</p>
+              ) : (
+                <p className="text-2xl font-semibold">
+                  {porcentajeAsistencia}%{" "}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({asistencias} asistió / {faltas} faltó)
                   </span>
-                  <Badge variant={b.asistio === true ? "success" : b.asistio === false ? "destructive" : "outline"}>
-                    {b.asistio === true ? "Asistió" : b.asistio === false ? "Faltó" : "Sin marcar"}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Nutrición</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!form ? (
-            <p className="text-sm text-muted-foreground">Todavía no llenó el formulario.</p>
-          ) : (
-            <NutritionStatusStepper estado={form.estado} />
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Vitrina de medallas</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {PILARES.map(({ pilar, label, color }) => {
-            const deEstePilar = skills.filter((s) => s.pilar === pilar);
-            const total = deEstePilar.reduce((acc, s) => acc + s.nivelesDisponibles.length, 0);
-            const logrados = deEstePilar.reduce(
-              (acc, s) =>
-                acc +
-                s.nivelesDisponibles.filter((nivel) =>
-                  achievements.some((a) => a.skillId === s.id && a.nivel === nivel && a.estado === "validado")
-                ).length,
-              0
-            );
-            return (
-              <div key={pilar} className="flex items-center justify-between text-sm">
-                <span style={{ color }}>{label}</span>
-                <span className="text-muted-foreground">
-                  {logrados}/{total}
-                </span>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Membresía</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!membership ? (
-            <p className="text-sm text-muted-foreground">Sin membresía asignada.</p>
-          ) : (
-            <div className="flex items-center justify-between text-sm">
-              <span>
-                {plan?.nombre ?? "Plan"} · vence {membership.fechaFin}
-              </span>
-              {estadoMembresia && (
-                <Badge variant={ESTADO_BADGE_VARIANT[estadoMembresia]}>{ESTADO_LABEL[estadoMembresia]}</Badge>
+                </p>
               )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {historialReciente.length > 0 && (
+                <ul className="mt-3 flex flex-col divide-y divide-border text-sm">
+                  {historialReciente.map((b) => (
+                    <li key={b.id} className="flex items-center justify-between py-1.5">
+                      <span>
+                        {b.fecha} · {b.hora}
+                      </span>
+                      <Badge variant={b.asistio === true ? "success" : b.asistio === false ? "destructive" : "outline"}>
+                        {b.asistio === true ? "Asistió" : b.asistio === false ? "Faltó" : "Sin marcar"}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Vitrina de medallas</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {PILARES.map(({ pilar, label, color }) => {
+                const deEstePilar = skills.filter((s) => s.pilar === pilar);
+                const total = deEstePilar.reduce((acc, s) => acc + s.nivelesDisponibles.length, 0);
+                const logrados = deEstePilar.reduce(
+                  (acc, s) =>
+                    acc +
+                    s.nivelesDisponibles.filter((nivel) =>
+                      achievements.some((a) => a.skillId === s.id && a.nivel === nivel && a.estado === "validado")
+                    ).length,
+                  0
+                );
+                return (
+                  <div key={pilar} className="flex items-center justify-between text-sm">
+                    <span style={{ color }}>{label}</span>
+                    <span className="text-muted-foreground">
+                      {logrados}/{total}
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {tab === "salud" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Perfil</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-2 text-sm">
+              <span className="text-muted-foreground">Estatura</span>
+              <span>{alumno.estaturaCm ? `${alumno.estaturaCm} cm` : "—"}</span>
+              <span className="text-muted-foreground">Meta</span>
+              <span>{alumno.meta ?? "—"}</span>
+              <span className="text-muted-foreground">Lesiones</span>
+              <span>{alumno.lesiones?.join(", ") || "—"}</span>
+              <span className="text-muted-foreground">Alergias</span>
+              <span>{alumno.alergias?.join(", ") || "—"}</span>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolución de peso</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WeightChart logs={pesoLogs} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Nutrición</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!form ? (
+                <p className="text-sm text-muted-foreground">Todavía no llenó el formulario.</p>
+              ) : (
+                <NutritionStatusStepper estado={form.estado} />
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {tab === "cuenta" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Membresía</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!membership ? (
+              <p className="text-sm text-muted-foreground">Sin membresía asignada.</p>
+            ) : (
+              <div className="flex items-center justify-between text-sm">
+                <span>
+                  {plan?.nombre ?? "Plan"} · vence {membership.fechaFin}
+                </span>
+                {estadoMembresia && (
+                  <Badge variant={ESTADO_BADGE_VARIANT[estadoMembresia]}>{ESTADO_LABEL[estadoMembresia]}</Badge>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

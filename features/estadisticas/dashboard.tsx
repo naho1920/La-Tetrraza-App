@@ -153,11 +153,11 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
           ) : (
             alertas && (
               <div className="flex flex-col divide-y divide-border">
-                <AlertaRow href="/nutricion-admin" label="Formularios de nutrición" count={alertas.nutricionPendientes} />
-                <AlertaRow href="/medallas-admin" label="Medallas por validar" count={alertas.medallasPorValidar} />
-                <AlertaRow href="/medallas-admin" label="Pines pendientes" count={alertas.pinesPendientes} />
-                <AlertaRow href="/membresias" label="Membresías por vencer" count={alertas.membresiasPorVencer} />
-                <AlertaRow href="/membresias" label="Comprobantes por revisar" count={alertas.comprobantesPendientes} />
+                <AlertaRow href="/nutricion-admin?estado=pendiente" label="Formularios de nutrición" count={alertas.nutricionPendientes} />
+                <AlertaRow href="/medallas-admin?vista=pendientes" label="Medallas por validar" count={alertas.medallasPorValidar} />
+                <AlertaRow href="/medallas-admin?vista=pines" label="Pines pendientes" count={alertas.pinesPendientes} />
+                <AlertaRow href="/membresias?tab=estado&filtro=por_vencer" label="Membresías por vencer" count={alertas.membresiasPorVencer} />
+                <AlertaRow href="/membresias?tab=acciones&open=comprobantes" label="Comprobantes por revisar" count={alertas.comprobantesPendientes} />
               </div>
             )
           )}
