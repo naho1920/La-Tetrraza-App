@@ -64,6 +64,7 @@ export default function NutricionPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de carga inicial, no causa bugs
     void cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userDoc]);

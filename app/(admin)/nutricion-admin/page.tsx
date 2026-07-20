@@ -150,6 +150,7 @@ export default function AdminNutricionPage() {
       .finally(() => setCargando(false));
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de carga inicial, no causa bugs
   useEffect(cargar, [filtro]);
 
   function handleCloseDialog() {
