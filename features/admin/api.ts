@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   orderBy,
@@ -17,6 +18,24 @@ import type { UserDoc } from "@/features/auth/types";
 export interface ApprovedEmail {
   email: string;
   agregadoAt: { toDate: () => Date } | null;
+  // Ausente o true = acceso activo. false = deshabilitado (no puede ingresar
+  // pero conserva su lugar en la lista para poder reactivarlo).
+  activo?: boolean;
+}
+
+/** Bloquea el acceso sin borrar el registro, para poder reactivarlo luego. */
+export async function desactivarAcceso(email: string) {
+  await updateDoc(doc(db, "approvedEmails", email), { activo: false });
+}
+
+export async function reactivarAcceso(email: string) {
+  await updateDoc(doc(db, "approvedEmails", email), { activo: true });
+}
+
+/** Quita al alumno de la lista de acceso y borra su perfil (no su historial). */
+export async function eliminarAlumno(email: string, uid?: string) {
+  await deleteDoc(doc(db, "approvedEmails", email));
+  if (uid) await deleteDoc(doc(db, "users", uid));
 }
 
 export async function addApprovedEmail(email: string) {

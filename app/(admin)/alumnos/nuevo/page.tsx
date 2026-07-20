@@ -1,5 +1,6 @@
 "use client";
 
+import { Ban, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -15,9 +16,12 @@ import {
   type ApprovedEmail,
   addApprovedEmail,
   aprobarSolicitud,
+  desactivarAcceso,
+  eliminarAlumno,
   listActivatedUsers,
   listApprovedEmails,
   listSolicitudesPendientes,
+  reactivarAcceso,
   rechazarSolicitud,
 } from "@/features/admin/api";
 import type { AccessRequest } from "@/features/auth/approval";
@@ -35,6 +39,8 @@ export default function NuevoAlumnoPage() {
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
   const [procesandoUid, setProcesandoUid] = useState<string | null>(null);
   const [rechazando, setRechazando] = useState<AccessRequest | null>(null);
+  const [procesandoEmail, setProcesandoEmail] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState<ApprovedEmail | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -105,6 +111,37 @@ export default function NuevoAlumnoPage() {
       toast("No se pudo rechazar la solicitud. Inténtalo de nuevo.", "error");
     } finally {
       setProcesandoUid(null);
+    }
+  }
+
+  async function handleToggleActivo(item: ApprovedEmail) {
+    const deshabilitado = item.activo === false;
+    setProcesandoEmail(item.email);
+    try {
+      if (deshabilitado) {
+        await reactivarAcceso(item.email);
+        toast(`${item.email} puede volver a entrar.`);
+      } else {
+        await desactivarAcceso(item.email);
+        toast(`${item.email} fue deshabilitado.`);
+      }
+      await loadData();
+    } catch {
+      toast("No se pudo actualizar el acceso. Inténtalo de nuevo.", "error");
+    } finally {
+      setProcesandoEmail(null);
+    }
+  }
+
+  async function handleEliminar(item: ApprovedEmail) {
+    const activated = usersByEmail.get(item.email);
+    try {
+      await eliminarAlumno(item.email, activated?.uid);
+      toast(`${item.email} fue eliminado de la lista.`);
+      setEliminando(null);
+      await loadData();
+    } catch {
+      toast("No se pudo eliminar al alumno. Inténtalo de nuevo.", "error");
     }
   }
 
@@ -202,9 +239,17 @@ export default function NuevoAlumnoPage() {
             </p>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
-              {filtrados.map(({ email: approvedEmail }) => {
+              {filtrados.map((item) => {
+                const approvedEmail = item.email;
                 const activated = usersByEmail.get(approvedEmail);
-                const contenido = (
+                const deshabilitado = item.activo === false;
+                const estadoLabel = deshabilitado ? "Deshabilitado" : activated ? "Activo" : "Pendiente";
+                const estadoClase = deshabilitado
+                  ? "bg-muted text-muted-foreground"
+                  : activated
+                    ? "bg-success/15 text-success"
+                    : "bg-warning/15 text-warning";
+                const nombreYEstado = (
                   <>
                     <span className="truncate text-sm">
                       {activated?.nombre ?? approvedEmail}
@@ -214,29 +259,43 @@ export default function NuevoAlumnoPage() {
                         </span>
                       )}
                     </span>
-                    <span
-                      className={
-                        activated
-                          ? "shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
-                          : "shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning"
-                      }
-                    >
-                      {activated ? "Activo" : "Pendiente"}
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${estadoClase}`}>
+                      {estadoLabel}
                     </span>
                   </>
                 );
                 return (
-                  <li key={approvedEmail}>
+                  <li key={approvedEmail} className="flex items-center gap-2 py-2.5">
                     {activated ? (
                       <Link
                         href={`/alumnos/${activated.uid}`}
-                        className="flex items-center justify-between gap-3 py-2.5 hover:text-primary"
+                        className="flex min-w-0 flex-1 items-center justify-between gap-3 hover:text-primary"
                       >
-                        {contenido}
+                        {nombreYEstado}
                       </Link>
                     ) : (
-                      <div className="flex items-center justify-between gap-3 py-2.5">{contenido}</div>
+                      <div className="flex min-w-0 flex-1 items-center justify-between gap-3">{nombreYEstado}</div>
                     )}
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={deshabilitado ? "Habilitar acceso" : "Deshabilitar acceso"}
+                        disabled={procesandoEmail === approvedEmail}
+                        onClick={() => handleToggleActivo(item)}
+                      >
+                        {deshabilitado ? <RotateCcw className="size-4" /> : <Ban className="size-4" />}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Eliminar alumno"
+                        className="text-destructive"
+                        onClick={() => setEliminando(item)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </li>
                 );
               })}
@@ -281,6 +340,22 @@ export default function NuevoAlumnoPage() {
           confirmLabel="Sí, rechazar"
           onConfirm={() => handleRechazar(rechazando.uid).then(() => setRechazando(null))}
           onCancel={() => setRechazando(null)}
+        />
+      )}
+
+      {eliminando && (
+        <ConfirmDialog
+          title="¿Eliminar a este alumno?"
+          description={
+            <>
+              Se eliminará <strong>{eliminando.email}</strong> de la lista de acceso y su perfil.
+              Su historial de clases, medallas y nutrición no se borra. Podrá volver a pedir acceso
+              más adelante.
+            </>
+          }
+          confirmLabel="Sí, eliminar"
+          onConfirm={() => handleEliminar(eliminando)}
+          onCancel={() => setEliminando(null)}
         />
       )}
     </div>

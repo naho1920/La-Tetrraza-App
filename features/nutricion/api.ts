@@ -89,12 +89,26 @@ export async function getPlanesForUser(uid: string): Promise<NutritionPlan[]> {
 
 // ---------- Subida / descarga de PDF (vía Supabase Storage, server-side) ----------
 
+/**
+ * Nombres de archivo con espacios, acentos o paréntesis rompen la codificación
+ * del multipart/form-data (el navegador lanza "The string did not match the
+ * expected pattern."). Se renombra a un nombre ASCII-seguro antes de enviarlo.
+ */
+function nombreArchivoSeguro(nombre: string): string {
+  const sinAcentos = nombre.normalize("NFD").replace(/\p{Mn}/gu, "");
+  return sinAcentos.replace(/[^a-zA-Z0-9.-]/g, "_");
+}
+
 export async function subirPlan(uid: string, formId: string, notas: string, archivo: File) {
+  const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
+    type: archivo.type,
+  });
+
   const body = new FormData();
   body.set("uid", uid);
   body.set("formId", formId);
   body.set("notas", notas);
-  body.set("archivo", archivo);
+  body.set("archivo", archivoSeguro);
 
   const res = await fetch("/api/nutricion/subir-plan", {
     method: "POST",

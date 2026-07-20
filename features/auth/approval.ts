@@ -14,7 +14,7 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
   if (!email) return null;
 
   const approvedSnap = await getDoc(doc(db, "approvedEmails", email));
-  if (!approvedSnap.exists()) return null;
+  if (!approvedSnap.exists() || approvedSnap.data().activo === false) return null;
 
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
