@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
 import type { EstadoNutricion, NutritionForm, NutritionPlan } from "./types";
 
 async function authHeader(): Promise<HeadersInit> {
@@ -87,7 +88,7 @@ export async function getPlanesForUser(uid: string): Promise<NutritionPlan[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NutritionPlan, "id">) }));
 }
 
-// ---------- Subida / descarga de PDF (vía Supabase Storage, server-side) ----------
+// ---------- Subida / descarga de PDF (vía Supabase Storage) ----------
 
 /**
  * Nombres de archivo con espacios, acentos o paréntesis rompen la codificación
@@ -99,24 +100,46 @@ function nombreArchivoSeguro(nombre: string): string {
   return sinAcentos.replace(/[^a-zA-Z0-9.-]/g, "_");
 }
 
+const MAX_BYTES_PLAN = 20 * 1024 * 1024;
+
+/**
+ * El PDF sube directo del navegador a Supabase Storage con una URL firmada
+ * (preparar-subida) y solo después se confirma en Firestore (confirmar-plan).
+ * Antes el PDF entero pasaba por una función serverless de Vercel, que tiene
+ * un límite de ~4.5 MB de body — cualquier archivo más pesado hacía que
+ * Vercel rechazara la petición con una página de error HTML en vez de JSON.
+ */
 export async function subirPlan(uid: string, formId: string, notas: string, archivo: File) {
+  if (archivo.size > MAX_BYTES_PLAN) {
+    throw new Error("El PDF no puede pesar más de 20 MB.");
+  }
+
   const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
     type: archivo.type,
   });
 
-  const body = new FormData();
-  body.set("uid", uid);
-  body.set("formId", formId);
-  body.set("notas", notas);
-  body.set("archivo", archivoSeguro);
-
-  const res = await fetch("/api/nutricion/subir-plan", {
+  const prepRes = await fetch("/api/nutricion/preparar-subida", {
     method: "POST",
-    headers: await authHeader(),
-    body,
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ uid, formId, nombreArchivo: archivoSeguro.name }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "No se pudo subir el plan.");
+  const prep = await prepRes.json();
+  if (!prepRes.ok) throw new Error(prep.error ?? "No se pudo preparar la subida.");
+
+  const { path, token } = prep as { path: string; token: string };
+
+  const { error: uploadError } = await supabase.storage
+    .from(DOCS_BUCKET)
+    .uploadToSignedUrl(path, token, archivoSeguro, { contentType: "application/pdf" });
+  if (uploadError) throw new Error(uploadError.message || "No se pudo subir el archivo.");
+
+  const confirmRes = await fetch("/api/nutricion/confirmar-plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ uid, formId, archivoPath: path, notas }),
+  });
+  const data = await confirmRes.json();
+  if (!confirmRes.ok) throw new Error(data.error ?? "No se pudo confirmar el plan.");
   return data as { ok: true; planId: string };
 }
 
