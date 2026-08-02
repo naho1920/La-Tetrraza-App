@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { nombreArchivoSeguro } from "@/lib/utils";
 import type { EstadoPago, PaymentReport } from "./types";
 
 async function authHeader(): Promise<HeadersInit> {
@@ -20,7 +21,12 @@ async function authHeader(): Promise<HeadersInit> {
 export async function reportarPago(nota: string, archivo: File | null) {
   const body = new FormData();
   body.set("nota", nota);
-  if (archivo) body.set("archivo", archivo);
+  if (archivo) {
+    const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
+      type: archivo.type,
+    });
+    body.set("archivo", archivoSeguro);
+  }
 
   const res = await fetch("/api/pagos/reportar", {
     method: "POST",

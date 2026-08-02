@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { nombreArchivoSeguro } from "@/lib/utils";
 import type { UserDoc } from "@/features/auth/types";
 
 export type PerfilFormValues = Pick<
@@ -91,8 +92,11 @@ export async function contarClasesAsistidas(uid: string): Promise<number> {
  */
 export async function subirFotoPerfil(uid: string, archivo: File): Promise<string> {
   const token = await auth.currentUser?.getIdToken();
+  const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
+    type: archivo.type,
+  });
   const formData = new FormData();
-  formData.append("archivo", archivo);
+  formData.append("archivo", archivoSeguro);
 
   const res = await fetch("/api/perfil/subir-avatar", {
     method: "POST",

@@ -6,7 +6,10 @@ import { excedeLimite, RESPUESTA_LIMITE } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { DOCS_BUCKET } from "@/lib/supabase/client";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// Vercel rechaza (con una página HTML, no JSON) el body de una función
+// serverless que pese más de ~4.5 MB, así que este límite debe quedar
+// cómodamente por debajo de eso.
+const MAX_BYTES = 4 * 1024 * 1024;
 const TIPOS_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 export async function POST(request: Request) {
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El comprobante debe ser JPG, PNG, WebP o PDF." }, { status: 400 });
     }
     if (archivo.size > MAX_BYTES) {
-      return NextResponse.json({ error: "El comprobante no puede pesar más de 5 MB." }, { status: 400 });
+      return NextResponse.json({ error: "El comprobante no puede pesar más de 4 MB." }, { status: 400 });
     }
   }
 

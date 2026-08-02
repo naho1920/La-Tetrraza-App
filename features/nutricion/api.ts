@@ -13,6 +13,7 @@ import {
 
 import { auth, db } from "@/lib/firebase/client";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
+import { nombreArchivoSeguro } from "@/lib/utils";
 import type { EstadoNutricion, NutritionForm, NutritionPlan } from "./types";
 
 async function authHeader(): Promise<HeadersInit> {
@@ -89,16 +90,6 @@ export async function getPlanesForUser(uid: string): Promise<NutritionPlan[]> {
 }
 
 // ---------- Subida / descarga de PDF (vía Supabase Storage) ----------
-
-/**
- * Nombres de archivo con espacios, acentos o paréntesis rompen la codificación
- * del multipart/form-data (el navegador lanza "The string did not match the
- * expected pattern."). Se renombra a un nombre ASCII-seguro antes de enviarlo.
- */
-function nombreArchivoSeguro(nombre: string): string {
-  const sinAcentos = nombre.normalize("NFD").replace(/\p{Mn}/gu, "");
-  return sinAcentos.replace(/[^a-zA-Z0-9.-]/g, "_");
-}
 
 const MAX_BYTES_PLAN = 20 * 1024 * 1024;
 
