@@ -39,6 +39,7 @@ export function AvatarUploader({
     setPreview(url);
     try {
       await subirFotoPerfil(uid, archivo);
+      setPreview(null);
       onUploaded?.();
     } catch (err) {
       setPreview(null);

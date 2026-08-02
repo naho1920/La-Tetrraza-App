@@ -108,10 +108,21 @@ export async function subirFotoPerfil(uid: string, archivo: File): Promise<strin
 
   const { path, token: uploadToken } = prep as { path: string; token: string };
 
-  const { error: uploadError } = await supabase.storage
-    .from(AVATARS_BUCKET)
-    .uploadToSignedUrl(path, uploadToken, archivoSeguro, { contentType: archivo.type });
-  if (uploadError) throw new Error(`No se pudo subir la foto a Supabase: ${uploadError.message}`);
+  // storage-js relanza sin envolver cualquier error que no sea un StorageError
+  // suyo (p. ej. un TypeError nativo del navegador al construir el request),
+  // así que se atrapa acá para siempre poder mostrar/loguear un mensaje con
+  // contexto en vez del texto crudo del navegador.
+  let uploadResult;
+  try {
+    uploadResult = await supabase.storage
+      .from(AVATARS_BUCKET)
+      .uploadToSignedUrl(path, uploadToken, archivoSeguro, { contentType: archivo.type });
+  } catch (err) {
+    throw new Error(
+      `No se pudo subir la foto a Supabase (error del navegador): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  if (uploadResult.error) throw new Error(`No se pudo subir la foto a Supabase: ${uploadResult.error.message}`);
 
   const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
   const url = `${data.publicUrl}?v=${Date.now()}`;
