@@ -21,14 +21,23 @@ import { AVATARS_BUCKET } from "@/lib/supabase/client";
 const MAX_BYTES = 8 * 1024 * 1024;
 const TIPOS_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-async function ensureBucket() {
-  const { data } = await supabaseAdmin.storage.getBucket(AVATARS_BUCKET);
-  if (data) return;
-  await supabaseAdmin.storage.createBucket(AVATARS_BUCKET, {
+/**
+ * Si el bucket ya existía (de antes de subir el límite a 8 MB), `createBucket`
+ * nunca corría de nuevo y el bucket se quedaba con su configuración vieja
+ * (2 MB) — Supabase rechazaba la subida aunque nuestro propio código ya
+ * permitiera 8 MB. `updateBucket` sincroniza la config existente también.
+ */
+async function ensureBucket(): Promise<string | null> {
+  const config = {
     public: true,
     fileSizeLimit: MAX_BYTES,
     allowedMimeTypes: [...TIPOS_PERMITIDOS],
-  });
+  };
+  const { data } = await supabaseAdmin.storage.getBucket(AVATARS_BUCKET);
+  const { error } = data
+    ? await supabaseAdmin.storage.updateBucket(AVATARS_BUCKET, config)
+    : await supabaseAdmin.storage.createBucket(AVATARS_BUCKET, config);
+  return error?.message ?? null;
 }
 
 export async function POST(request: Request) {
@@ -58,18 +67,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La foto no puede pesar más de 8 MB." }, { status: 400 });
   }
 
-  await ensureBucket();
+  try {
+    const bucketError = await ensureBucket();
+    if (bucketError) {
+      return NextResponse.json({ error: `No se pudo preparar el almacenamiento: ${bucketError}` }, { status: 500 });
+    }
 
-  const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
-  const path = `${decoded.uid}/avatar.${extension}`;
+    const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+    const path = `${decoded.uid}/avatar.${extension}`;
 
-  const { data, error } = await supabaseAdmin.storage
-    .from(AVATARS_BUCKET)
-    .createSignedUploadUrl(path, { upsert: true });
+    const { data, error } = await supabaseAdmin.storage
+      .from(AVATARS_BUCKET)
+      .createSignedUploadUrl(path, { upsert: true });
 
-  if (error || !data) {
-    return NextResponse.json({ error: error?.message ?? "No se pudo preparar la subida." }, { status: 500 });
+    if (error || !data) {
+      return NextResponse.json(
+        { error: `No se pudo generar el link de subida: ${error?.message ?? "error desconocido"}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ token: data.token, path: data.path });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Error inesperado al preparar la subida: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ token: data.token, path: data.path });
 }

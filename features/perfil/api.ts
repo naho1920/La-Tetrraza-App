@@ -87,11 +87,6 @@ export async function contarClasesAsistidas(uid: string): Promise<number> {
 }
 
 /**
- * Sube la foto al bucket público de avatares (vía API route con service
- * role) y guarda la URL en el perfil. Gratis: usa el mismo Supabase Storage
- * que ya tenemos para videos y planes.
- */
-/**
  * La foto sube directo del navegador a Supabase Storage con una URL firmada,
  * nunca pasa por una función de Vercel: una foto de celular sin comprimir
  * fácilmente supera el límite de ~4.5 MB de body de Vercel, que rechaza la
@@ -116,7 +111,7 @@ export async function subirFotoPerfil(uid: string, archivo: File): Promise<strin
   const { error: uploadError } = await supabase.storage
     .from(AVATARS_BUCKET)
     .uploadToSignedUrl(path, uploadToken, archivoSeguro, { contentType: archivo.type });
-  if (uploadError) throw new Error(uploadError.message || "No se pudo subir la foto.");
+  if (uploadError) throw new Error(`No se pudo subir la foto a Supabase: ${uploadError.message}`);
 
   const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
   const url = `${data.publicUrl}?v=${Date.now()}`;
