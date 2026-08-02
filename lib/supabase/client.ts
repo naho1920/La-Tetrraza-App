@@ -17,3 +17,4 @@ export const supabase = {
 };
 
 export const DOCS_BUCKET = "docslaterraza";
+export const AVATARS_BUCKET = "avatars";

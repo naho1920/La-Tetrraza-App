@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { AVATARS_BUCKET, supabase } from "@/lib/supabase/client";
 import { nombreArchivoSeguro } from "@/lib/utils";
 import type { UserDoc } from "@/features/auth/types";
 
@@ -90,22 +91,36 @@ export async function contarClasesAsistidas(uid: string): Promise<number> {
  * role) y guarda la URL en el perfil. Gratis: usa el mismo Supabase Storage
  * que ya tenemos para videos y planes.
  */
+/**
+ * La foto sube directo del navegador a Supabase Storage con una URL firmada,
+ * nunca pasa por una función de Vercel: una foto de celular sin comprimir
+ * fácilmente supera el límite de ~4.5 MB de body de Vercel, que rechaza la
+ * petición con una página de error HTML en vez de JSON.
+ */
 export async function subirFotoPerfil(uid: string, archivo: File): Promise<string> {
   const token = await auth.currentUser?.getIdToken();
   const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
     type: archivo.type,
   });
-  const formData = new FormData();
-  formData.append("archivo", archivoSeguro);
 
-  const res = await fetch("/api/perfil/subir-avatar", {
+  const prepRes = await fetch("/api/perfil/preparar-avatar", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token ?? ""}` },
-    body: formData,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+    body: JSON.stringify({ contentType: archivo.type, size: archivo.size }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "No se pudo subir la foto.");
+  const prep = await prepRes.json();
+  if (!prepRes.ok) throw new Error(prep.error ?? "No se pudo preparar la subida.");
 
-  await updateDoc(doc(db, "users", uid), { foto: data.url });
-  return data.url as string;
+  const { path, token: uploadToken } = prep as { path: string; token: string };
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATARS_BUCKET)
+    .uploadToSignedUrl(path, uploadToken, archivoSeguro, { contentType: archivo.type });
+  if (uploadError) throw new Error(uploadError.message || "No se pudo subir la foto.");
+
+  const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+
+  await updateDoc(doc(db, "users", uid), { foto: url });
+  return url;
 }
