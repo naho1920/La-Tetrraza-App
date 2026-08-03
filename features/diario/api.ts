@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   orderBy,
@@ -121,6 +122,14 @@ export async function listDiarioAchievementsForUser(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as DiarioAchievement));
 }
 
+/** Perfil solo necesita el número de logros del diario, no los documentos. */
+export async function contarDiarioAchievements(uid: string): Promise<number> {
+  const snap = await getCountFromServer(
+    query(collection(db, "diarioAchievements"), where("uid", "==", uid))
+  );
+  return snap.data().count;
+}
+
 /** Checks which thresholds the new value crosses and grants any new achievements. Returns only newly created ones. */
 export async function checkAndGrantAchievements(
   uid: string,
@@ -138,12 +147,16 @@ export async function checkAndGrantAchievements(
       : valor <= threshold && threshold > 0;
   });
 
-  const newAchievements: DiarioAchievement[] = [];
+  // Los niveles alcanzados son independientes entre sí (bronce/plata/oro no
+  // dependen uno del otro), así que se resuelven en paralelo: antes eran
+  // hasta 3 vueltas secuenciales de getDoc+setDoc (6 round trips) para
+  // guardar un solo registro que cruza varios umbrales a la vez.
+  const nuevos = await Promise.all(
+    reached.map(async (nivel) => {
+      const id = achievementId(uid, metric.id, nivel);
+      const existing = await getDoc(doc(db, "diarioAchievements", id));
+      if (existing.exists()) return null;
 
-  for (const nivel of reached) {
-    const id = achievementId(uid, metric.id, nivel);
-    const existing = await getDoc(doc(db, "diarioAchievements", id));
-    if (!existing.exists()) {
       const payload = {
         uid,
         metricId: metric.id,
@@ -155,9 +168,9 @@ export async function checkAndGrantAchievements(
         creadoAt: serverTimestamp(),
       };
       await setDoc(doc(db, "diarioAchievements", id), payload);
-      newAchievements.push({ id, ...payload, creadoAt: null });
-    }
-  }
+      return { id, ...payload, creadoAt: null } as DiarioAchievement;
+    })
+  );
 
-  return newAchievements;
+  return nuevos.filter((a): a is DiarioAchievement => a !== null);
 }

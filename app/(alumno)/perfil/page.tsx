@@ -11,7 +11,7 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { signOutUser } from "@/features/auth/client-actions";
 import { getSkill, listAchievementsForUser } from "@/features/medallas/api";
-import { listDiarioAchievementsForUser } from "@/features/diario/api";
+import { contarDiarioAchievements } from "@/features/diario/api";
 import { NotificationsBell } from "@/features/notificaciones/bell";
 import { contarClasesAsistidas, getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { AvatarUploader } from "@/features/perfil/avatar-uploader";
@@ -35,8 +35,8 @@ export default function PerfilPage() {
     if (!userDoc) return;
     getWeightLogs(userDoc.uid).then(setPesoLogs);
     contarClasesAsistidas(userDoc.uid).then(setClasesAsistidas).catch(() => setClasesAsistidas(0));
-    listDiarioAchievementsForUser(userDoc.uid)
-      .then((a) => setLogrosCount(a.length))
+    contarDiarioAchievements(userDoc.uid)
+      .then(setLogrosCount)
       .catch(() => setLogrosCount(0));
 
     listAchievementsForUser(userDoc.uid)
