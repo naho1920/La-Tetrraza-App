@@ -76,10 +76,14 @@ export async function updateSkill(id: string, data: Partial<Omit<Skill, "id">>) 
   await updateDoc(doc(db, "skills", id), data);
 }
 
+// Cacheada porque el Home del alumno y la campanita de notificaciones la piden
+// en paralelo al montarse juntas.
 export async function listAchievementsForUser(uid: string): Promise<Achievement[]> {
-  const q = query(collection(db, "achievements"), where("uid", "==", uid));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  return conCache(`medallas:del-alumno-${uid}`, async () => {
+    const q = query(collection(db, "achievements"), where("uid", "==", uid));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  });
 }
 
 /**

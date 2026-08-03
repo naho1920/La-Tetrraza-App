@@ -52,16 +52,20 @@ export async function updatePlan(id: string, data: Partial<Omit<MembershipPlan, 
 
 // ---------- Alumno ----------
 
+// Cacheada porque el Home del alumno y la campanita de notificaciones la piden
+// en paralelo al montarse juntas.
 export async function getMembershipForUser(uid: string): Promise<Membership | null> {
-  const q = query(
-    collection(db, "memberships"),
-    where("uid", "==", uid),
-    orderBy("fechaFin", "desc"),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  const first = snap.docs[0];
-  return first ? ({ id: first.id, ...(first.data() as Omit<Membership, "id">) }) : null;
+  return conCache(`membresias:del-alumno-${uid}`, async () => {
+    const q = query(
+      collection(db, "memberships"),
+      where("uid", "==", uid),
+      orderBy("fechaFin", "desc"),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    const first = snap.docs[0];
+    return first ? ({ id: first.id, ...(first.data() as Omit<Membership, "id">) }) : null;
+  });
 }
 
 export async function listPaymentsForUser(uid: string): Promise<Payment[]> {

@@ -17,6 +17,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 
+import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
 import { addDays, esClasePasada, puedeCancelar, toISODate } from "./date-utils";
@@ -192,6 +193,7 @@ export async function reservarCupo(
     });
     tx.update(sessionRef, { cuposOcupados: session.cuposOcupados + 1 });
   });
+  invalidarCache(`reservas:futuras-${uid}-`);
 }
 
 export async function cancelarReserva(sessionId: string, uid: string) {
@@ -215,6 +217,7 @@ export async function cancelarReserva(sessionId: string, uid: string) {
     tx.update(bookingRef, { estado: "cancelado" });
     tx.update(sessionRef, { cuposOcupados: Math.max(0, session.cuposOcupados - 1) });
   });
+  invalidarCache(`reservas:futuras-${uid}-`);
 }
 
 // ---------- Admin: inscritos y asistencia ----------
@@ -262,17 +265,66 @@ export async function marcarAsistencia(bookingId: string, asistio: boolean) {
 
 // ---------- Home del alumno ----------
 
+/**
+ * Reservas activas y futuras de un alumno (sin límite: quien llama decide
+ * cuántas necesita — `getUpcomingBookingsForUser` corta a un margen chico,
+ * las notificaciones quieren verlas todas para detectar cancelaciones).
+ *
+ * Antes cada consumidor traía TODAS las reservas históricas del alumno (sin
+ * filtro de fecha) — con un año de reservas eran ~200 documentos para mostrar
+ * 3 tarjetas, y crecía cada semana porque una reserva pasada nunca cambia de
+ * `estado: "reservado"`. `fecha` ya está denormalizada en el booking desde
+ * que existe esta función (ver `reservarCupo`), así que el filtro va directo
+ * en la consulta.
+ *
+ * Requiere el índice compuesto `bookings: uid + estado + fecha` (ver
+ * firestore.indexes.json). Mientras ese índice no esté listo, Firestore
+ * rechaza la consulta con `failed-precondition`; el fallback repite el
+ * comportamiento anterior (traer las reservas activas y filtrar la fecha en
+ * el cliente) para que el Home y las notificaciones nunca se rompan por el
+ * orden en que se despliegan las cosas. Una vez confirmado el índice en
+ * producción, el fallback se puede borrar.
+ */
+export async function getReservasFuturasDelAlumno(uid: string, hoyISO: string): Promise<Booking[]> {
+  // El Home del alumno y la campanita de notificaciones llaman esto en
+  // paralelo al montarse juntas: se comparte la petición en vez de duplicarla.
+  return conCache(`reservas:futuras-${uid}-${hoyISO}`, () => fetchReservasFuturasDelAlumno(uid, hoyISO));
+}
+
+async function fetchReservasFuturasDelAlumno(uid: string, hoyISO: string): Promise<Booking[]> {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, "bookings"),
+        where("uid", "==", uid),
+        where("estado", "==", "reservado"),
+        where("fecha", ">=", hoyISO),
+        orderBy("fecha")
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }));
+  } catch {
+    const snap = await getDocs(
+      query(collection(db, "bookings"), where("uid", "==", uid), where("estado", "==", "reservado"))
+    );
+    return snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }))
+      .filter((b) => (b.fecha ?? "") >= hoyISO)
+      .sort((a, b) => (a.fecha ?? "").localeCompare(b.fecha ?? ""));
+  }
+}
+
+// Cuántas reservas futuras se leen para armar las 3 tarjetas: si alguna
+// resulta cancelada se sigue completando hasta 3 sin una segunda vuelta a
+// Firestore.
+const MARGEN_CANCELADAS = 5;
+
 export async function getUpcomingBookingsForUser(
   uid: string,
   hoyISO: string
 ): Promise<Array<{ booking: Booking; session: ClassSession }>> {
-  const q = query(
-    collection(db, "bookings"),
-    where("uid", "==", uid),
-    where("estado", "==", "reservado")
-  );
-  const snap = await getDocs(q);
-  const bookings = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }));
+  const todas = await getReservasFuturasDelAlumno(uid, hoyISO);
+  const bookings = todas.slice(0, MARGEN_CANCELADAS);
 
   const sessions = await Promise.all(
     bookings.map(async (b) => {
@@ -287,7 +339,7 @@ export async function getUpcomingBookingsForUser(
     .map((booking, i) => ({ booking, session: sessions[i] }))
     .filter(
       (item): item is { booking: Booking; session: ClassSession } =>
-        item.session !== null && item.session.estado === "programada" && item.session.fecha >= hoyISO
+        item.session !== null && item.session.estado === "programada"
     )
     .sort((a, b) => (a.session.fecha + a.session.hora).localeCompare(b.session.fecha + b.session.hora))
     .slice(0, 3);

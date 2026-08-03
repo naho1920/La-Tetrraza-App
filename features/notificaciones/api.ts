@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { listActivatedUsers, listApprovedEmails, listSolicitudesPendientes } from "@/features/admin/api";
@@ -13,7 +13,8 @@ import type { Skill } from "@/features/medallas/types";
 import { getMembershipForUser, listAllMembershipsWithAlumno } from "@/features/membresias/api";
 import { calcularEstadoMembresia } from "@/features/membresias/estado";
 import { getPlanesForUser, listFormsByEstado } from "@/features/nutricion/api";
-import type { Booking, ClassSession } from "@/features/reservas/types";
+import { getReservasFuturasDelAlumno } from "@/features/reservas/api";
+import type { ClassSession } from "@/features/reservas/types";
 
 export type IconoNotificacion =
   | "acceso"
@@ -168,17 +169,15 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
 
-  const [achievements, planes, membership, bookingsSnap] = await Promise.all([
+  // getReservasFuturasDelAlumno ya filtra por fecha en la consulta (antes esta
+  // función traía TODO el historial de reservas del alumno y descartaba las
+  // pasadas en el cliente — la misma consulta sin techo que
+  // getUpcomingBookingsForUser, ahora unificada en un solo lugar).
+  const [achievements, planes, membership, proximas] = await Promise.all([
     listAchievementsForUser(uid),
     getPlanesForUser(uid).catch(() => []),
     getMembershipForUser(uid).catch(() => null),
-    getDocs(
-      query(
-        collection(db, "bookings"),
-        where("uid", "==", uid),
-        where("estado", "==", "reservado")
-      )
-    ),
+    getReservasFuturasDelAlumno(uid, hoyISO),
   ]);
 
   const items: Notificacion[] = [];
@@ -245,8 +244,6 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
   }
 
   // Clases futuras que tenías reservadas y fueron canceladas.
-  const bookings = bookingsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }));
-  const proximas = bookings.filter((b) => (b.fecha ?? "") >= hoyISO);
   const sesiones = await Promise.all(
     proximas.map(async (b) => {
       const snap = await getDoc(doc(db, "classSessions", b.sessionId));
