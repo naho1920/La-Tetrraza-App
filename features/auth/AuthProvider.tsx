@@ -41,7 +41,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setUser(firebaseUser);
-    const doc = await ensureUserDocument(firebaseUser);
+
+    // ensureUserDocument (2 lecturas de Firestore) y getIdToken no dependen
+    // uno del otro, así que van en paralelo. Antes eran secuenciales: si la
+    // app estuvo inactiva más de una hora (el token expira a la hora),
+    // getIdToken debe refrescarlo contra el servidor de Google — sumado a
+    // los 2 round trips de Firestore, uno atrás del otro, cada apertura
+    // "después de un rato" pagaba hasta 3 viajes de red seguidos antes de
+    // poder mostrar cualquier pantalla que dependa de userDoc.
+    const [doc, idToken] = await Promise.all([
+      ensureUserDocument(firebaseUser),
+      firebaseUser.getIdToken(),
+    ]);
+
     if (!doc) {
       setUserDoc(null);
       setStatus("not-approved");
@@ -53,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Next.js pueda verificar la autenticación y el claim `admin` sin
     // firebase-admin (que no corre en Edge runtime). El token expira en 1 h;
     // Firebase dispara onAuthStateChanged antes de que expire para renovarlo.
-    const idToken = await firebaseUser.getIdToken();
     document.cookie = `__session=${idToken}; path=/; max-age=3600; SameSite=Strict`;
 
     setUserDoc(doc);

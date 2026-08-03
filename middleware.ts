@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 const ADMIN_PATHS = [
   "/alumnos",
   "/clases",
+  "/diario-admin",
   "/estadisticas",
   "/medallas-admin",
   "/membresias",
@@ -14,6 +15,7 @@ const ADMIN_PATHS = [
 
 // Rutas de alumno que requieren login (sin ser admin-only).
 const ALUMNO_PATHS = [
+  "/diario",
   "/horarios",
   "/medallas",
   "/membresia",
