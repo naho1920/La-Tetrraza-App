@@ -95,14 +95,20 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
         <header className="flex items-center justify-between gap-3 py-2">
           <div className="flex items-center gap-3">
-            <Image
-              src="/icon-512.png"
-              alt="La Terraza"
-              width={44}
-              height={44}
-              className="rounded-full shadow-sm"
-              priority
-            />
+            {userDoc?.foto ? (
+              <Image
+                src={userDoc.foto}
+                alt=""
+                width={44}
+                height={44}
+                className="size-11 rounded-full object-cover ring-2 ring-primary/30"
+                priority
+              />
+            ) : (
+              <div className="flex size-11 items-center justify-center rounded-full bg-primary-subtle font-heading font-semibold text-primary">
+                {userDoc?.nombre.charAt(0)}
+              </div>
+            )}
             <div>
               <p className="text-xs text-muted-foreground">La Terraza</p>
               <h1 className="font-heading text-xl leading-tight font-semibold">
