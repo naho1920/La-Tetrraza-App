@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
-import { listActivatedUsers, listSolicitudesPendientes } from "@/features/admin/api";
+import { listActivatedUsers, listApprovedEmails, listSolicitudesPendientes } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import {
   getSkill,
@@ -51,7 +51,7 @@ function fechaLegible(iso: string): string {
 // ---------- Coach ----------
 
 async function getNotificacionesCoach(): Promise<Notificacion[]> {
-  const [solicitudes, medallasPendientes, pines, formsPendientes, formsRevision, memberships, users] =
+  const [solicitudes, medallasPendientes, pines, formsPendientes, formsRevision, memberships, users, aprobados] =
     await Promise.all([
       listSolicitudesPendientes(),
       listAchievementsByEstado("pendiente"),
@@ -60,9 +60,11 @@ async function getNotificacionesCoach(): Promise<Notificacion[]> {
       listFormsByEstado("en_revision"),
       listAllMembershipsWithAlumno(),
       listActivatedUsers(),
+      listApprovedEmails(),
     ]);
 
   const usuariosPorUid = new Map(users.map((u) => [u.uid, u]));
+  const usuariosPorEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
   const nombreDe = (uid: string) => usuariosPorUid.get(uid)?.nombre ?? "Un alumno";
 
   // Nombres de medallas: solo se leen las skills que aparecen en pendientes/pins.
@@ -82,6 +84,26 @@ async function getNotificacionesCoach(): Promise<Notificacion[]> {
       detalle: `${s.email} — dale acceso desde Alumnos`,
       href: "/alumnos/nuevo",
       fecha: s.solicitadoAt?.toDate() ?? null,
+    });
+  }
+
+  // Alguien se auto-aprobó con un link de invitación (sin pasar por
+  // "solicitudes"): la coach no tiene otra forma de enterarse de que alguien
+  // ya se unió, así que se avisa mientras esté dentro de la ventana reciente.
+  const desdeInvites = new Date(Date.now() - DIAS_VENTANA * 24 * 60 * 60 * 1000);
+  for (const a of aprobados) {
+    if (!a.viaInvite || a.activo === false) continue;
+    const fecha = a.agregadoAt?.toDate();
+    if (!fecha || fecha < desdeInvites) continue;
+    const alumno = usuariosPorEmail.get(a.email.toLowerCase());
+    if (!alumno) continue;
+    items.push({
+      id: `nuevo-alumno-${alumno.uid}`,
+      icono: "acceso",
+      titulo: `${alumno.nombre} se registró en la app 🎉`,
+      detalle: "Se unió con tu link de invitación",
+      href: `/alumnos/${alumno.uid}`,
+      fecha,
     });
   }
 

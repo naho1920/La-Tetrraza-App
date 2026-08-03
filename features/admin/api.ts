@@ -21,6 +21,10 @@ export interface ApprovedEmail {
   // Ausente o true = acceso activo. false = deshabilitado (no puede ingresar
   // pero conserva su lugar en la lista para poder reactivarlo).
   activo?: boolean;
+  // Token del link de invitación con el que se auto-aprobó (ver
+  // app/api/invitaciones/redimir/route.ts). Ausente = acceso agregado a mano
+  // por la coach.
+  viaInvite?: string;
 }
 
 /**
