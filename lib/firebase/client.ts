@@ -40,3 +40,11 @@ function createFirestore(): Firestore {
 export const db: Firestore = createFirestore();
 
 export const googleProvider = new GoogleAuthProvider();
+// Fuerza a Google a mostrar siempre el selector de cuentas. Sin esto, una PWA
+// instalada en iOS ("Agregar a inicio") queda pegada a la primera cuenta con
+// la que se inició sesión: ese modo standalone usa un almacenamiento aislado
+// del Safari/Chrome normal, así que Google no ve ambigüedad de cuentas y
+// omite el selector — cerrar sesión en la app nunca borra la sesión de Google
+// en sí (ninguna app puede hacer eso), solo la de Firebase. Con este parámetro
+// el selector aparece siempre, en cualquier plataforma.
+googleProvider.setCustomParameters({ prompt: "select_account" });
