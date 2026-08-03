@@ -28,13 +28,16 @@ async function pingStorage(): Promise<string> {
   return error ? `error: ${error.message}` : "ok";
 }
 
+// Va con la service role key porque el endpoint raíz de PostgREST rechaza la
+// clave pública ("Only secret API keys can be used for this endpoint" → 401).
+// La clave no sale del servidor: esta ruta nunca se ejecuta en el navegador.
 async function pingRest(): Promise<string> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return "error: faltan variables de entorno de Supabase";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return "error: faltan variables de entorno de Supabase";
   try {
     const res = await fetch(`${url}/rest/v1/`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
       cache: "no-store",
     });
     return res.ok ? "ok" : `error: HTTP ${res.status}`;
