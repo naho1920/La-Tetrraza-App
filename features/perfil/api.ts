@@ -92,41 +92,47 @@ export async function contarClasesAsistidas(uid: string): Promise<number> {
  * fácilmente supera el límite de ~4.5 MB de body de Vercel, que rechaza la
  * petición con una página de error HTML en vez de JSON.
  */
+/**
+ * Cada paso queda envuelto y etiquetado: storage-js relanza sin envolver
+ * cualquier error que no sea un StorageError suyo (p. ej. un TypeError nativo
+ * del navegador al construir el request), y por eso el mensaje que llegaba a
+ * pantalla siempre era el texto crudo del navegador sin decir en qué parte
+ * fallaba. Envolver TODO el flujo, no solo la subida, es la única forma de
+ * saber con certeza cuál paso es el que realmente revienta en el celular.
+ */
 export async function subirFotoPerfil(uid: string, archivo: File): Promise<string> {
-  const token = await auth.currentUser?.getIdToken();
-  const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
-    type: archivo.type,
-  });
-
-  const prepRes = await fetch("/api/perfil/preparar-avatar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
-    body: JSON.stringify({ contentType: archivo.type, size: archivo.size }),
-  });
-  const prep = await prepRes.json();
-  if (!prepRes.ok) throw new Error(prep.error ?? "No se pudo preparar la subida.");
-
-  const { path, token: uploadToken } = prep as { path: string; token: string };
-
-  // storage-js relanza sin envolver cualquier error que no sea un StorageError
-  // suyo (p. ej. un TypeError nativo del navegador al construir el request),
-  // así que se atrapa acá para siempre poder mostrar/loguear un mensaje con
-  // contexto en vez del texto crudo del navegador.
-  let uploadResult;
+  let paso = "preparando el archivo en el navegador";
   try {
-    uploadResult = await supabase.storage
+    const token = await auth.currentUser?.getIdToken();
+    const archivoSeguro = new File([archivo], nombreArchivoSeguro(archivo.name), {
+      type: archivo.type,
+    });
+
+    paso = "pidiendo permiso de subida al servidor";
+    const prepRes = await fetch("/api/perfil/preparar-avatar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+      body: JSON.stringify({ contentType: archivo.type, size: archivo.size }),
+    });
+    const prep = await prepRes.json();
+    if (!prepRes.ok) throw new Error(prep.error ?? "No se pudo preparar la subida.");
+
+    const { path, token: uploadToken } = prep as { path: string; token: string };
+
+    paso = "subiendo el archivo a Supabase";
+    const uploadResult = await supabase.storage
       .from(AVATARS_BUCKET)
       .uploadToSignedUrl(path, uploadToken, archivoSeguro, { contentType: archivo.type });
+    if (uploadResult.error) throw new Error(uploadResult.error.message);
+
+    paso = "guardando la foto en tu perfil";
+    const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
+    const url = `${data.publicUrl}?v=${Date.now()}`;
+    await updateDoc(doc(db, "users", uid), { foto: url });
+    return url;
   } catch (err) {
-    throw new Error(
-      `No se pudo subir la foto a Supabase (error del navegador): ${err instanceof Error ? err.message : String(err)}`
-    );
+    const detalle = err instanceof Error ? err.message : String(err);
+    console.error(`[subirFotoPerfil] falló ${paso}:`, err);
+    throw new Error(`No se pudo subir la foto (falló ${paso}): ${detalle}`);
   }
-  if (uploadResult.error) throw new Error(`No se pudo subir la foto a Supabase: ${uploadResult.error.message}`);
-
-  const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
-  const url = `${data.publicUrl}?v=${Date.now()}`;
-
-  await updateDoc(doc(db, "users", uid), { foto: url });
-  return url;
 }
