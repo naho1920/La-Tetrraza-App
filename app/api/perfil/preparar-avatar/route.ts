@@ -22,6 +22,27 @@ const MAX_BYTES = 8 * 1024 * 1024;
 const TIPOS_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
+ * `fetch failed` / ENOTFOUND son fallos de RED, no del archivo: significan que
+ * la función no pudo ni conectarse a Supabase (proyecto borrado o pausado, o
+ * `NEXT_PUBLIC_SUPABASE_URL` mal configurada). Ese mensaje crudo no le dice
+ * nada a quien sube la foto, así que se traduce a algo accionable y el detalle
+ * técnico (incluido el host) queda en los logs del servidor.
+ */
+function esFalloDeConexion(mensaje: string): boolean {
+  return /fetch failed|ENOTFOUND|ECONNREFUSED|EAI_AGAIN|getaddrinfo|network/i.test(mensaje);
+}
+
+function describirErrorStorage(mensaje: string, paso: string): string {
+  console.error(
+    `[preparar-avatar] ${paso} falló contra ${process.env.NEXT_PUBLIC_SUPABASE_URL}: ${mensaje}`
+  );
+  if (esFalloDeConexion(mensaje)) {
+    return "No se pudo conectar con el almacenamiento de fotos. Avisa a la coach: el proyecto de Supabase no está respondiendo.";
+  }
+  return mensaje;
+}
+
+/**
  * Si el bucket ya existía (de antes de subir el límite a 8 MB), `createBucket`
  * nunca corría de nuevo y el bucket se quedaba con su configuración vieja
  * (2 MB) — Supabase rechazaba la subida aunque nuestro propio código ya
@@ -37,7 +58,7 @@ async function ensureBucket(): Promise<string | null> {
   const { error } = data
     ? await supabaseAdmin.storage.updateBucket(AVATARS_BUCKET, config)
     : await supabaseAdmin.storage.createBucket(AVATARS_BUCKET, config);
-  return error?.message ?? null;
+  return error ? describirErrorStorage(error.message, "preparar el bucket") : null;
 }
 
 export async function POST(request: Request) {
@@ -70,7 +91,7 @@ export async function POST(request: Request) {
   try {
     const bucketError = await ensureBucket();
     if (bucketError) {
-      return NextResponse.json({ error: `No se pudo preparar el almacenamiento: ${bucketError}` }, { status: 500 });
+      return NextResponse.json({ error: bucketError }, { status: 503 });
     }
 
     const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
@@ -81,10 +102,11 @@ export async function POST(request: Request) {
       .createSignedUploadUrl(path, { upsert: true });
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: `No se pudo generar el link de subida: ${error?.message ?? "error desconocido"}` },
-        { status: 500 }
+      const detalle = describirErrorStorage(
+        error?.message ?? "error desconocido",
+        "generar el link de subida"
       );
+      return NextResponse.json({ error: detalle }, { status: 503 });
     }
 
     return NextResponse.json({ token: data.token, path: data.path });
