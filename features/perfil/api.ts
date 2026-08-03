@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -75,15 +76,22 @@ export async function getWeightLogs(uid: string): Promise<WeightLog[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<WeightLog, "id">) }));
 }
 
-/** Total de clases a las que la coach marcó asistencia. */
+/**
+ * Total de clases a las que la coach marcó asistencia.
+ *
+ * Usa `getCountFromServer`: antes traía TODOS los documentos de asistencia del
+ * alumno solo para devolver `snap.size` — con un año de uso son cientos de
+ * lecturas para obtener un único número, y crecía sin techo. El agregado se
+ * cuenta en el servidor y factura como una sola lectura.
+ */
 export async function contarClasesAsistidas(uid: string): Promise<number> {
   const q = query(
     collection(db, "bookings"),
     where("uid", "==", uid),
     where("asistio", "==", true)
   );
-  const snap = await getDocs(q);
-  return snap.size;
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
 
 /**

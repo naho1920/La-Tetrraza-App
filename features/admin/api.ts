@@ -11,6 +11,7 @@ import {
   where,
 } from "firebase/firestore";
 
+import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
 import type { AccessRequest } from "@/features/auth/approval";
 import type { UserDoc } from "@/features/auth/types";
@@ -37,17 +38,20 @@ export interface ApprovedEmail {
 export async function desactivarAcceso(email: string, uid?: string) {
   await updateDoc(doc(db, "approvedEmails", email), { activo: false });
   if (uid) await updateDoc(doc(db, "users", uid), { aprobado: false });
+  invalidarCache("admin:");
 }
 
 export async function reactivarAcceso(email: string, uid?: string) {
   await updateDoc(doc(db, "approvedEmails", email), { activo: true });
   if (uid) await updateDoc(doc(db, "users", uid), { aprobado: true });
+  invalidarCache("admin:");
 }
 
 /** Quita al alumno de la lista de acceso y borra su perfil (no su historial). */
 export async function eliminarAlumno(email: string, uid?: string) {
   await deleteDoc(doc(db, "approvedEmails", email));
   if (uid) await deleteDoc(doc(db, "users", uid));
+  invalidarCache("admin:");
 }
 
 export async function addApprovedEmail(email: string) {
@@ -55,43 +59,60 @@ export async function addApprovedEmail(email: string) {
   await setDoc(doc(db, "approvedEmails", normalized), {
     agregadoAt: serverTimestamp(),
   });
+  invalidarCache("admin:");
 }
 
 export async function listApprovedEmails(): Promise<ApprovedEmail[]> {
-  const snap = await getDocs(
-    query(collection(db, "approvedEmails"), orderBy("agregadoAt", "desc"))
-  );
-  return snap.docs.map((d) => ({
-    email: d.id,
-    ...(d.data() as Omit<ApprovedEmail, "email">),
-  }));
+  return conCache("admin:approved-emails", async () => {
+    const snap = await getDocs(
+      query(collection(db, "approvedEmails"), orderBy("agregadoAt", "desc"))
+    );
+    return snap.docs.map((d) => ({
+      email: d.id,
+      ...(d.data() as Omit<ApprovedEmail, "email">),
+    }));
+  });
 }
 
+/**
+ * Filtra por `rol` en el servidor: los tres consumidores solo usan alumnos y
+ * antes descartaban a los admins en el cliente, después de haber pagado la
+ * lectura de la colección `users` completa.
+ *
+ * No se filtra además por `aprobado` a propósito: varias pantallas necesitan el
+ * nombre de alumnos deshabilitados para mostrarlo en listas e historiales.
+ */
 export async function listActivatedUsers(): Promise<UserDoc[]> {
-  const snap = await getDocs(collection(db, "users"));
-  return snap.docs.map((d) => d.data() as UserDoc);
+  return conCache("admin:users-alumnos", async () => {
+    const snap = await getDocs(query(collection(db, "users"), where("rol", "==", "alumno")));
+    return snap.docs.map((d) => d.data() as UserDoc);
+  });
 }
 
 // ---------- Solicitudes de acceso ----------
 
 export async function listSolicitudesPendientes(): Promise<AccessRequest[]> {
-  const snap = await getDocs(
-    query(collection(db, "accessRequests"), where("estado", "==", "pendiente"))
-  );
-  return snap.docs
-    .map((d) => d.data() as AccessRequest)
-    .sort(
-      (a, b) =>
-        (a.solicitadoAt?.toDate().getTime() ?? 0) - (b.solicitadoAt?.toDate().getTime() ?? 0)
+  return conCache("admin:solicitudes-pendientes", async () => {
+    const snap = await getDocs(
+      query(collection(db, "accessRequests"), where("estado", "==", "pendiente"))
     );
+    return snap.docs
+      .map((d) => d.data() as AccessRequest)
+      .sort(
+        (a, b) =>
+          (a.solicitadoAt?.toDate().getTime() ?? 0) - (b.solicitadoAt?.toDate().getTime() ?? 0)
+      );
+  });
 }
 
 /** Aprueba la solicitud: agrega el email a la lista de acceso y la marca. */
 export async function aprobarSolicitud(solicitud: AccessRequest) {
   await addApprovedEmail(solicitud.email);
   await updateDoc(doc(db, "accessRequests", solicitud.uid), { estado: "aprobada" });
+  invalidarCache("admin:");
 }
 
 export async function rechazarSolicitud(uid: string) {
   await updateDoc(doc(db, "accessRequests", uid), { estado: "rechazada" });
+  invalidarCache("admin:");
 }

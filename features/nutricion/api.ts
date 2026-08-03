@@ -11,6 +11,7 @@ import {
   where,
 } from "firebase/firestore";
 
+import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
 import { nombreArchivoSeguro } from "@/lib/utils";
@@ -59,24 +60,31 @@ export async function saveFormDraft(formId: string, respuestas: Record<string, s
 
 export async function submitForm(formId: string) {
   await updateDoc(doc(db, "nutritionForms", formId), { enviado: true });
+  invalidarCache("nutricion:");
 }
 
 // ---------- Admin ----------
 
+// Cacheada porque el Home de la coach la pide dos veces en paralelo (una desde
+// getAlertas para el badge, otra desde las notificaciones) con los mismos
+// argumentos.
 export async function listFormsByEstado(estado: EstadoNutricion): Promise<NutritionForm[]> {
-  const q = query(
-    collection(db, "nutritionForms"),
-    where("estado", "==", estado),
-    where("enviado", "==", true),
-    orderBy("createdAt", "asc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NutritionForm, "id">) }));
+  return conCache(`nutricion:forms-${estado}`, async () => {
+    const q = query(
+      collection(db, "nutritionForms"),
+      where("estado", "==", estado),
+      where("enviado", "==", true),
+      orderBy("createdAt", "asc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NutritionForm, "id">) }));
+  });
 }
 
 export async function marcarEnRevision(form: NutritionForm) {
   if (form.estado !== "pendiente") return;
   await updateDoc(doc(db, "nutritionForms", form.id), { estado: "en_revision" });
+  invalidarCache("nutricion:");
 }
 
 export async function getPlanesForUser(uid: string): Promise<NutritionPlan[]> {
@@ -131,6 +139,7 @@ export async function subirPlan(uid: string, formId: string, notas: string, arch
   });
   const data = await confirmRes.json();
   if (!confirmRes.ok) throw new Error(data.error ?? "No se pudo confirmar el plan.");
+  invalidarCache("nutricion:");
   return data as { ok: true; planId: string };
 }
 

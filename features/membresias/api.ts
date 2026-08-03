@@ -12,6 +12,8 @@ import {
   where,
 } from "firebase/firestore";
 
+import { listActivatedUsers } from "@/features/admin/api";
+import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
 import type { Membership, MembershipPlan, Payment } from "./types";
@@ -76,29 +78,39 @@ export interface MembershipConAlumno {
   plan: MembershipPlan | null;
 }
 
+/**
+ * Antes esto hacía un `getDoc` a `users` por CADA membresía (N+1): con 200
+ * membresías eran 202 peticiones, y como `assignMembership` crea un doc nuevo
+ * en cada renovación sin cerrar el anterior, un alumno con 12 renovaciones se
+ * leía 12 veces. Se ejecutaba tres veces por pantalla en el Home de la coach.
+ *
+ * Ahora reutiliza `listActivatedUsers()` — que ya está cacheada y compartida
+ * con el resto de las pantallas admin — así que el N+1 desaparece por completo
+ * en vez de solo reducirse.
+ */
 export async function listAllMembershipsWithAlumno(): Promise<MembershipConAlumno[]> {
-  const [membershipsSnap, plans] = await Promise.all([
-    getDocs(collection(db, "memberships")),
-    listAllPlansAdmin(),
-  ]);
-  const memberships = membershipsSnap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<Membership, "id">),
-  }));
-  const plansById = Object.fromEntries(plans.map((p) => [p.id, p]));
+  return conCache("membresias:todas-con-alumno", async () => {
+    const [membershipsSnap, plans, alumnos] = await Promise.all([
+      getDocs(collection(db, "memberships")),
+      listAllPlansAdmin(),
+      listActivatedUsers(),
+    ]);
+    const memberships = membershipsSnap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Membership, "id">),
+    }));
+    const plansById = Object.fromEntries(plans.map((p) => [p.id, p]));
+    const alumnosPorUid = new Map(alumnos.map((a) => [a.uid, a]));
 
-  const alumnos = await Promise.all(
-    memberships.map(async (m) => {
-      const snap = await getDoc(doc(db, "users", m.uid));
-      return snap.exists() ? (snap.data() as UserDoc) : null;
-    })
-  );
-
-  return memberships.map((membership, i) => ({
-    membership,
-    alumno: alumnos[i] ? { uid: alumnos[i]!.uid, nombre: alumnos[i]!.nombre } : null,
-    plan: plansById[membership.planId] ?? null,
-  }));
+    return memberships.map((membership) => {
+      const alumno = alumnosPorUid.get(membership.uid);
+      return {
+        membership,
+        alumno: alumno ? { uid: alumno.uid, nombre: alumno.nombre } : null,
+        plan: plansById[membership.planId] ?? null,
+      };
+    });
+  });
 }
 
 export async function assignMembership(uid: string, planId: string, fechaInicioISO: string, duracionDias: number) {
@@ -112,6 +124,7 @@ export async function assignMembership(uid: string, planId: string, fechaInicioI
     fechaInicio: fechaInicioISO,
     fechaFin: toISODate(fin),
   });
+  invalidarCache("membresias:");
 }
 
 export async function registerPayment(

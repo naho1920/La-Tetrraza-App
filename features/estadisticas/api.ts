@@ -1,4 +1,13 @@
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  Timestamp,
+  collection,
+  doc,
+  getCountFromServer,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import type { UserDoc } from "@/features/auth/types";
@@ -73,6 +82,44 @@ export async function getAlertas(): Promise<Alertas> {
   };
 }
 
+/**
+ * Medallas validadas dentro del mes.
+ *
+ * Antes traía TODOS los achievements validados de la historia y filtraba por
+ * fecha en el cliente, para obtener un número que suele ser menor a 10 — y
+ * crecía sin techo con cada mes de uso. Ahora el rango va en la consulta y el
+ * conteo lo hace el servidor (1 lectura facturada en vez de cientos).
+ *
+ * Esa consulta (igualdad + rango sobre campos distintos) necesita el índice
+ * compuesto `achievements: estado + validadoAt` que está declarado en
+ * `firestore.indexes.json`. Mientras ese índice no esté desplegado, Firestore
+ * rechaza la consulta con `failed-precondition`; el fallback mantiene el
+ * comportamiento anterior para que la métrica nunca se rompa por el orden en
+ * que se despliegan las cosas. Una vez confirmado el índice en producción, el
+ * fallback se puede borrar.
+ */
+async function contarMedallasDelMes(inicioMes: Date, finMes: Date): Promise<number> {
+  const rango = [
+    where("estado", "==", "validado"),
+    where("validadoAt", ">=", Timestamp.fromDate(inicioMes)),
+    where("validadoAt", "<=", Timestamp.fromDate(finMes)),
+  ];
+
+  try {
+    const snap = await getCountFromServer(query(collection(db, "achievements"), ...rango));
+    return snap.data().count;
+  } catch {
+    const snap = await getDocs(
+      query(collection(db, "achievements"), where("estado", "==", "validado"))
+    );
+    return snap.docs.filter((d) => {
+      const validadoAt = d.data().validadoAt as { toDate?: () => Date } | null;
+      const fecha = validadoAt?.toDate?.();
+      return fecha && fecha >= inicioMes && fecha <= finMes;
+    }).length;
+  }
+}
+
 export interface MetricasMes {
   asistenciasTotales: number;
   alumnoMasConstante: { nombre: string; asistencias: number } | null;
@@ -118,17 +165,13 @@ export async function getMetricasDelMes(): Promise<MetricasMes> {
     };
   }
 
-  const achievementsSnap = await getDocs(
-    query(collection(db, "achievements"), where("estado", "==", "validado"))
-  );
-  const medallasDesbloqueadas = achievementsSnap.docs.filter((d) => {
-    const validadoAt = d.data().validadoAt as { toDate?: () => Date } | null;
-    const fecha = validadoAt?.toDate?.();
-    return fecha && fecha >= inicioMes && fecha <= finMes;
-  }).length;
-
-  const usersSnap = await getDocs(query(collection(db, "users"), where("aprobado", "==", true)));
-  const alumnosActivos = usersSnap.docs.filter((d) => (d.data() as UserDoc).rol === "alumno").length;
+  const [medallasDesbloqueadas, alumnosSnap] = await Promise.all([
+    contarMedallasDelMes(inicioMes, finMes),
+    getCountFromServer(
+      query(collection(db, "users"), where("rol", "==", "alumno"), where("aprobado", "==", true))
+    ),
+  ]);
+  const alumnosActivos = alumnosSnap.data().count;
 
   return {
     asistenciasTotales: bookings.length,

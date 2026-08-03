@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 
+import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
 import { toISODate } from "@/lib/date";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
@@ -112,6 +113,7 @@ export async function claimAchievement(
     tiempoLogrado,
     estado: "pendiente" as EstadoAchievement,
   });
+  invalidarCache("medallas:");
 }
 
 export async function marcarCelebrado(id: string) {
@@ -138,19 +140,25 @@ export async function getUncelebratedValidated(uid: string): Promise<Achievement
 
 // ---------- Admin ----------
 
+// Cacheadas porque el Home de la coach las pide dos veces en paralelo (una para
+// el badge de alertas, otra para las notificaciones).
 export async function listAchievementsByEstado(estado: EstadoAchievement): Promise<Achievement[]> {
-  const snap = await getDocs(query(collection(db, "achievements"), where("estado", "==", estado)));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  return conCache(`medallas:por-estado-${estado}`, async () => {
+    const snap = await getDocs(query(collection(db, "achievements"), where("estado", "==", estado)));
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  });
 }
 
 export async function listPinesPendientes(): Promise<Achievement[]> {
-  const q = query(
-    collection(db, "achievements"),
-    where("estado", "==", "validado"),
-    where("pinEntregado", "==", false),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  return conCache("medallas:pines-pendientes", async () => {
+    const q = query(
+      collection(db, "achievements"),
+      where("estado", "==", "validado"),
+      where("pinEntregado", "==", false),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Achievement, "id">) }));
+  });
 }
 
 /**
@@ -166,6 +174,11 @@ export async function validarAchievement(id: string, adminUid: string, aprobado:
     validadoPor: adminUid,
     validadoAt: ahora,
   });
+
+  // Se invalida acá y no al final porque la función tiene varios `return`
+  // tempranos (cascada de niveles inferiores) y el badge ya cambió con este
+  // updateDoc.
+  invalidarCache("medallas:");
 
   if (!aprobado) return;
 
@@ -222,6 +235,7 @@ export async function listAchievementsConPeso(): Promise<Achievement[]> {
 
 export async function marcarPinEntregado(id: string) {
   await updateDoc(doc(db, "achievements", id), { pinEntregado: true });
+  invalidarCache("medallas:");
 }
 
 /**
@@ -253,4 +267,5 @@ export async function otorgarMedallaManual(
     validadoPor: adminUid,
     validadoAt: serverTimestamp(),
   });
+  invalidarCache("medallas:");
 }

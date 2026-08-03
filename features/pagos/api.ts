@@ -9,6 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 
+import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
 import { nombreArchivoSeguro } from "@/lib/utils";
 import type { EstadoPago, PaymentReport } from "./types";
@@ -35,6 +36,7 @@ export async function reportarPago(nota: string, archivo: File | null) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "No se pudo reportar el pago.");
+  invalidarCache("pagos:");
   return data as { ok: true; reportId: string };
 }
 
@@ -55,14 +57,18 @@ export async function getReportsForUser(uid: string): Promise<PaymentReport[]> {
 
 // ---------- Admin ----------
 
+// Cacheada porque el Home de la coach la pide para el badge de comprobantes
+// pendientes en paralelo con la pantalla de Membresías.
 export async function listReportsByEstado(estado: EstadoPago): Promise<PaymentReport[]> {
-  const q = query(
-    collection(db, "paymentReports"),
-    where("estado", "==", estado),
-    orderBy("createdAt", "asc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<PaymentReport, "id">) }));
+  return conCache(`pagos:por-estado-${estado}`, async () => {
+    const q = query(
+      collection(db, "paymentReports"),
+      where("estado", "==", estado),
+      orderBy("createdAt", "asc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<PaymentReport, "id">) }));
+  });
 }
 
 export async function marcarRevisado(report: PaymentReport, adminUid: string) {
@@ -71,4 +77,5 @@ export async function marcarRevisado(report: PaymentReport, adminUid: string) {
     revisadoPor: adminUid,
     revisadoAt: serverTimestamp(),
   });
+  invalidarCache("pagos:");
 }

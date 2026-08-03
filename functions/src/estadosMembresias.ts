@@ -26,7 +26,10 @@ function calcularEstado(fechaFin: string, hoy: Date): EstadoMembresia {
 export const estadosMembresias = onSchedule(
   { schedule: "0 5 * * *", timeZone: "America/Guayaquil" },
   async () => {
-    const snap = await db.collection("membresias").get();
+    // La colección se llama "memberships" (en inglés, como la escribe toda la
+    // app cliente en features/membresias/api.ts). Con "membresias" este cron
+    // recorría una colección vacía y el campo `estado` nunca se actualizaba.
+    const snap = await db.collection("memberships").get();
     const hoy = new Date();
     let actualizadas = 0;
 
