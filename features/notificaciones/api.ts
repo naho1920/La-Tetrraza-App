@@ -1,6 +1,7 @@
-import { doc, getDoc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { getDoc } from "@/lib/firestore-safe";
 import { listActivatedUsers, listApprovedEmails, listSolicitudesPendientes } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import {

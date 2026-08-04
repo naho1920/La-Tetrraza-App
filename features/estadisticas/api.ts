@@ -1,15 +1,7 @@
-import {
-  Timestamp,
-  collection,
-  doc,
-  getCountFromServer,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { Timestamp, collection, doc, query, where } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
 import type { UserDoc } from "@/features/auth/types";
 import { listAllMembershipsWithAlumno } from "@/features/membresias/api";
 import { calcularEstadoMembresia } from "@/features/membresias/estado";

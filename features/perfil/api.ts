@@ -2,9 +2,6 @@ import {
   addDoc,
   collection,
   doc,
-  getCountFromServer,
-  getDoc,
-  getDocs,
   limit,
   orderBy,
   query,
@@ -14,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
 import { AVATARS_BUCKET, supabase } from "@/lib/supabase/client";
 import { nombreArchivoSeguro } from "@/lib/utils";
 import type { UserDoc } from "@/features/auth/types";

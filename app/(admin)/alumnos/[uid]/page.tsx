@@ -1,6 +1,6 @@
 "use client";
 
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { db } from "@/lib/firebase/client";
+import { getDocs } from "@/lib/firestore-safe";
 import type { UserDoc } from "@/features/auth/types";
 import { listAchievementsForUser, listSkills } from "@/features/medallas/api";
 import { PILARES } from "@/features/medallas/catalogo";

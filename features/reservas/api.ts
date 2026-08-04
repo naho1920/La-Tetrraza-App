@@ -3,8 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
-  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -19,6 +17,7 @@ import {
 
 import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
+import { getDoc, getDocs } from "@/lib/firestore-safe";
 import type { UserDoc } from "@/features/auth/types";
 import { addDays, esClasePasada, puedeCancelar, toISODate } from "./date-utils";
 import type { Booking, ClassSession, ClassTemplate } from "./types";

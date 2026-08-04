@@ -2,7 +2,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
   orderBy,
   query,
   serverTimestamp,
@@ -13,6 +12,7 @@ import {
 
 import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
+import { getDocs } from "@/lib/firestore-safe";
 import type { AccessRequest } from "@/features/auth/approval";
 import type { UserDoc } from "@/features/auth/types";
 

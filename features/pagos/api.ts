@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDocs,
   orderBy,
   query,
   serverTimestamp,
@@ -11,6 +10,7 @@ import {
 
 import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
+import { getDocs } from "@/lib/firestore-safe";
 import { nombreArchivoSeguro } from "@/lib/utils";
 import type { EstadoPago, PaymentReport } from "./types";
 

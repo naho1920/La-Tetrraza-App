@@ -3,9 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getCountFromServer,
-  getDoc,
-  getDocs,
   orderBy,
   query,
   serverTimestamp,
@@ -15,6 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
 import type { ActivityLog, DiarioAchievement, NivelDiario, TrackingMetric } from "./types";
 
 // --- Time helpers ---

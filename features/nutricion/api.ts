@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  getDocs,
   doc,
   limit,
   orderBy,
@@ -13,6 +12,7 @@ import {
 
 import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
+import { getDocs } from "@/lib/firestore-safe";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
 import { nombreArchivoSeguro } from "@/lib/utils";
 import type { EstadoNutricion, NutritionForm, NutritionPlan } from "./types";

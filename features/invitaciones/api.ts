@@ -2,7 +2,6 @@ import {
   Timestamp,
   collection,
   doc,
-  getDocs,
   orderBy,
   query,
   serverTimestamp,
@@ -11,6 +10,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { getDocs } from "@/lib/firestore-safe";
 import type { InviteLink } from "./types";
 
 /** Token de 192 bits (24 bytes) en base64url — imposible de adivinar por fuerza bruta. */

@@ -1,7 +1,8 @@
 import type { User } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { getDoc } from "@/lib/firestore-safe";
 import type { UserDoc } from "./types";
 
 /**

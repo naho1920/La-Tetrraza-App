@@ -2,8 +2,6 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
-  getDocs,
   limit,
   orderBy,
   query,
@@ -16,6 +14,7 @@ import {
 import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
 import { toISODate } from "@/lib/date";
+import { getDoc, getDocs } from "@/lib/firestore-safe";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
 import type { Achievement, EstadoAchievement, Skill } from "./types";
 

@@ -33,11 +33,44 @@ const entradas = new Map<string, Entrada>();
 const TTL_MS = 30_000;
 
 /**
+ * Si la petición real no resuelve en este tiempo, se da por colgada. Pasa
+ * cuando el celular pausa la conexión al cambiar de pestaña o de app (muy
+ * común en iOS) justo mientras una consulta está en vuelo: esa promesa puede
+ * quedarse sin resolver NUNCA. Como se comparte entre todo lo que pida la
+ * misma clave, sin este límite una sola consulta colgada bloqueaba cualquier
+ * pantalla que pidiera lo mismo durante todo el TTL — y ni cerrar y reabrir
+ * la pestaña lo arreglaba, porque el usuario volvía a caer en la misma
+ * promesa compartida.
+ */
+const TIMEOUT_MS = 8_000;
+
+function conLimite<T>(promesa: Promise<T>, clave: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const vencido = setTimeout(
+      () => reject(new Error(`Tiempo de espera agotado: ${clave}`)),
+      TIMEOUT_MS
+    );
+    promesa.then(
+      (valor) => {
+        clearTimeout(vencido);
+        resolve(valor);
+      },
+      (err) => {
+        clearTimeout(vencido);
+        reject(err);
+      }
+    );
+  });
+}
+
+/**
  * Devuelve el resultado de `fn` desde la caché si sigue fresco; si no, lo
  * ejecuta y lo guarda. Llamadas concurrentes con la misma clave comparten una
  * única ejecución.
  *
- * Si `fn` falla, la entrada se descarta para no dejar cacheado un error.
+ * Si `fn` falla (o se cuelga más de TIMEOUT_MS), la entrada se descarta para
+ * no dejar cacheada una promesa rota o colgada — la próxima llamada arranca
+ * de cero en vez de quedarse esperando la misma promesa para siempre.
  */
 export function conCache<T>(clave: string, fn: () => Promise<T>, ttlMs = TTL_MS): Promise<T> {
   const ahora = Date.now();
@@ -46,12 +79,27 @@ export function conCache<T>(clave: string, fn: () => Promise<T>, ttlMs = TTL_MS)
     return existente.promesa as Promise<T>;
   }
 
-  const promesa = fn().catch((err) => {
+  const promesa = conLimite(fn(), clave).catch((err) => {
     entradas.delete(clave);
     throw err;
   });
   entradas.set(clave, { promesa, expiraEn: ahora + ttlMs });
   return promesa;
+}
+
+/**
+ * Al volver a la pestaña/app después de estar oculta, se limpia toda la
+ * caché: es la señal más clara de "puede que la conexión se haya cortado
+ * mientras no mirabas esto" (cambiar de pestaña, bloquear el celular, que el
+ * sistema pause la app en segundo plano). Vaciar la caché no cuesta nada —
+ * el próximo componente que pida datos simplemente los vuelve a pedir — y
+ * evita arrastrar una promesa que quedó a medio resolver desde antes de
+ * ocultarse.
+ */
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") entradas.clear();
+  });
 }
 
 /**

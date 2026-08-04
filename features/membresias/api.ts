@@ -3,9 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getCountFromServer,
-  getDoc,
-  getDocs,
   limit,
   orderBy,
   query,
@@ -17,6 +14,7 @@ import {
 import { listActivatedUsers } from "@/features/admin/api";
 import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
+import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
 import type { UserDoc } from "@/features/auth/types";
 import type { Membership, MembershipPlan, Payment } from "./types";
 
