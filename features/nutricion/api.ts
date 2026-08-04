@@ -34,7 +34,16 @@ export async function getFormForUser(uid: string): Promise<NutritionForm | null>
   return first ? ({ id: first.id, ...(first.data() as Omit<NutritionForm, "id">) }) : null;
 }
 
-/** Devuelve el borrador activo (no enviado) del alumno, o crea uno nuevo. */
+/**
+ * Devuelve el borrador activo (no enviado) del alumno, o crea uno nuevo.
+ *
+ * Al crear una versión nueva (porque la anterior ya se envió), las respuestas
+ * arrancan desde las de la ÚLTIMA versión enviada, no en blanco — `prellenado`
+ * solo pisa los campos que vienen del perfil (nombre, fecha de nacimiento,
+ * estatura), que pueden haber cambiado. Así, si el alumno solo actualiza su
+ * formulario porque cambió de objetivo, no tiene que volver a escribir
+ * alergias, lesiones, ni el resto de respuestas que siguen siendo válidas.
+ */
 export async function getOrCreateDraftForm(
   uid: string,
   prellenado: Record<string, string>
@@ -44,7 +53,7 @@ export async function getOrCreateDraftForm(
 
   const nuevo = {
     uid,
-    respuestas: prellenado,
+    respuestas: { ...ultimo?.respuestas, ...prellenado },
     version: (ultimo?.version ?? 0) + 1,
     enviado: false,
     estado: "pendiente" as EstadoNutricion,

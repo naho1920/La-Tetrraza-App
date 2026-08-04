@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
 import { PageSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -20,6 +21,7 @@ export default function NutricionPage() {
   const [loading, setLoading] = useState(true);
   const [reenviando, setReenviando] = useState(false);
   const [errorCarga, setErrorCarga] = useState(false);
+  const [confirmandoActualizar, setConfirmandoActualizar] = useState(false);
 
   async function cargar() {
     if (!userDoc) return;
@@ -60,6 +62,7 @@ export default function NutricionPage() {
       setPlan(null);
     } finally {
       setReenviando(false);
+      setConfirmandoActualizar(false);
     }
   }
 
@@ -99,7 +102,11 @@ export default function NutricionPage() {
               )}
               {form.estado === "plan_enviado" && plan && <PlanViewer plan={plan} />}
               {form.estado === "plan_enviado" && (
-                <Button variant="outline" disabled={reenviando} onClick={handleActualizarFormulario}>
+                <Button
+                  variant="outline"
+                  disabled={reenviando}
+                  onClick={() => setConfirmandoActualizar(true)}
+                >
                   {reenviando ? "Un momento…" : "Actualizar formulario (mis objetivos cambiaron)"}
                 </Button>
               )}
@@ -115,6 +122,17 @@ export default function NutricionPage() {
             </CardContent>
           </Card>
         )
+      )}
+
+      {confirmandoActualizar && (
+        <ConfirmDialog
+          title="¿Actualizar tu formulario?"
+          description="Tu coach va a tener que revisar y armarte un plan nuevo. Tus respuestas anteriores quedan precargadas — solo edita lo que cambió."
+          confirmLabel={reenviando ? "Un momento…" : "Sí, actualizar"}
+          destructive={false}
+          onConfirm={handleActualizarFormulario}
+          onCancel={() => setConfirmandoActualizar(false)}
+        />
       )}
     </div>
   );

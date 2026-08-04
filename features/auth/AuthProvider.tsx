@@ -63,9 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // TASK-054: escribir el ID token en una cookie para que el middleware de
     // Next.js pueda verificar la autenticación y el claim `admin` sin
-    // firebase-admin (que no corre en Edge runtime). El token expira en 1 h;
-    // Firebase dispara onAuthStateChanged antes de que expire para renovarlo.
-    document.cookie = `__session=${idToken}; path=/; max-age=3600; SameSite=Strict`;
+    // firebase-admin (que no corre en Edge runtime). middleware.ts NUNCA
+    // verifica la firma ni el "exp" del token (ver decodeJwtPayload) — es
+    // solo defensa en profundidad, la verificación real con firma y
+    // expiración pasa por Firestore Security Rules y adminAuth.verifyIdToken
+    // en las rutas de API. Por eso esta cookie puede durar mucho más que la
+    // hora de vida del token: antes, si la app quedaba inactiva más de 1h y
+    // el sistema mataba el proceso (frecuente en PWAs de iOS), la cookie
+    // vencía server-side y el middleware rebotaba a /login antes de que el
+    // cliente llegara a confirmar que la sesión de Firebase seguía siendo
+    // válida — de ahí el flash de login al reabrir. Firebase renueva el
+    // token y esta cookie en segundo plano mientras la app está activa, así
+    // que basta con abrir la app una vez dentro de la ventana para que nunca
+    // llegue a vencer en un uso normal.
+    document.cookie = `__session=${idToken}; path=/; max-age=2592000; SameSite=Strict`;
 
     setUserDoc(doc);
     setStatus("ready");
