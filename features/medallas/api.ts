@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   limit,
   orderBy,
@@ -14,7 +15,7 @@ import {
 import { conCache, invalidarCache } from "@/lib/cache";
 import { auth, db } from "@/lib/firebase/client";
 import { toISODate } from "@/lib/date";
-import { getDoc, getDocs } from "@/lib/firestore-safe";
+import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
 import { DOCS_BUCKET, supabase } from "@/lib/supabase/client";
 import type { Achievement, EstadoAchievement, Skill } from "./types";
 
@@ -73,6 +74,22 @@ export async function createSkill(skill: Omit<Skill, "id">) {
 
 export async function updateSkill(id: string, data: Partial<Omit<Skill, "id">>) {
   await updateDoc(doc(db, "skills", id), data);
+}
+
+/** Cuántos logros (de cualquier alumno) usan esta medalla — para avisar antes de eliminarla. */
+export async function contarAchievementsConSkill(skillId: string): Promise<number> {
+  const snap = await getCountFromServer(query(collection(db, "achievements"), where("skillId", "==", skillId)));
+  return snap.data().count;
+}
+
+/**
+ * Elimina la medalla del catálogo. Los logros que ya la reclamaron NO se
+ * tocan (no se borra el historial de nadie) — solo dejan de poder mostrar el
+ * nombre/arte de la medalla si alguien los consulta después, por eso
+ * `contarAchievementsConSkill` existe para avisar antes de esta acción.
+ */
+export async function deleteSkill(id: string) {
+  await deleteDoc(doc(db, "skills", id));
 }
 
 // Cacheada porque el Home del alumno y la campanita de notificaciones la piden

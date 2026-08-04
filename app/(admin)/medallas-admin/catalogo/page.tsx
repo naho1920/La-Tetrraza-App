@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,7 +20,13 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
-import { createSkill, listAllSkillsAdmin, updateSkill } from "@/features/medallas/api";
+import {
+  contarAchievementsConSkill,
+  createSkill,
+  deleteSkill,
+  listAllSkillsAdmin,
+  updateSkill,
+} from "@/features/medallas/api";
 import { PILARES } from "@/features/medallas/catalogo";
 import type { Pilar, Skill, TipoSkill } from "@/features/medallas/types";
 
@@ -236,6 +243,8 @@ export default function CatalogoMedallasPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [editando, setEditando] = useState<Skill | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [borrando, setBorrando] = useState<Skill | null>(null);
+  const [logrosDeLaSkill, setLogrosDeLaSkill] = useState<number | null>(null);
 
   function cargar() {
     listAllSkillsAdmin().then(setSkills);
@@ -250,6 +259,25 @@ export default function CatalogoMedallasPage() {
       cargar();
     } catch {
       toast("No se pudo actualizar la medalla. Inténtalo de nuevo.", "error");
+    }
+  }
+
+  function handlePedirBorrar(skill: Skill) {
+    setBorrando(skill);
+    setLogrosDeLaSkill(null);
+    contarAchievementsConSkill(skill.id).then(setLogrosDeLaSkill);
+  }
+
+  async function handleConfirmarBorrar() {
+    if (!borrando) return;
+    try {
+      await deleteSkill(borrando.id);
+      toast(`Medalla "${borrando.nombreMedalla}" eliminada.`);
+      cargar();
+    } catch {
+      toast("No se pudo eliminar la medalla. Inténtalo de nuevo.", "error");
+    } finally {
+      setBorrando(null);
     }
   }
 
@@ -326,13 +354,24 @@ export default function CatalogoMedallasPage() {
                       {skill.nombreMedalla}
                       {!skill.activa && <Badge variant="outline" className="ml-2">inactiva</Badge>}
                     </button>
-                    <Button
-                      size="sm"
-                      variant={skill.activa ? "outline" : "secondary"}
-                      onClick={() => handleToggleActiva(skill)}
-                    >
-                      {skill.activa ? "Desactivar" : "Activar"}
-                    </Button>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button
+                        size="sm"
+                        variant={skill.activa ? "outline" : "secondary"}
+                        onClick={() => handleToggleActiva(skill)}
+                      >
+                        {skill.activa ? "Desactivar" : "Activar"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Eliminar ${skill.nombreMedalla}`}
+                        onClick={() => handlePedirBorrar(skill)}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -340,6 +379,22 @@ export default function CatalogoMedallasPage() {
           );
         })}
       </div>
+
+      {borrando && (
+        <ConfirmDialog
+          title={`¿Eliminar "${borrando.nombreMedalla}"?`}
+          description={
+            logrosDeLaSkill === null
+              ? "Revisando si algún alumno la reclamó…"
+              : logrosDeLaSkill > 0
+                ? `${logrosDeLaSkill} logro${logrosDeLaSkill === 1 ? "" : "s"} de alumnos usa${logrosDeLaSkill === 1 ? "" : "n"} esta medalla. No se borra el historial de nadie, pero esos logros van a dejar de mostrar el nombre y el arte de la medalla. Esta acción no se puede deshacer.`
+                : "Ningún alumno la reclamó todavía. Esta acción no se puede deshacer."
+          }
+          confirmLabel="Sí, eliminar"
+          onConfirm={handleConfirmarBorrar}
+          onCancel={() => setBorrando(null)}
+        />
+      )}
     </div>
   );
 }
