@@ -4,6 +4,7 @@ import { Check, Pause, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -93,10 +94,6 @@ function TemplateDialog({
 
   async function handleEliminar() {
     if (!template) return;
-    if (!confirmandoEliminar) {
-      setConfirmandoEliminar(true);
-      return;
-    }
     await deleteTemplate(template.id);
     onSaved(`Clase de ${DIAS_SEMANA[template.diaSemana]} ${template.hora} eliminada del horario.`);
   }
@@ -183,11 +180,26 @@ function TemplateDialog({
                 </>
               )}
             </Button>
-            <Button type="button" variant="destructive" className="flex-1" onClick={handleEliminar}>
+            <Button
+              type="button"
+              variant="destructive"
+              className="flex-1"
+              onClick={() => setConfirmandoEliminar(true)}
+            >
               <Trash2 className="size-4" data-icon="inline-start" />
-              {confirmandoEliminar ? "¿Segura? Sí, eliminar" : "Eliminar"}
+              Eliminar
             </Button>
           </div>
+        )}
+
+        {confirmandoEliminar && template && (
+          <ConfirmDialog
+            title="¿Eliminar esta clase del horario?"
+            description={`Se deja de generar la clase de ${DIAS_SEMANA[template.diaSemana]} ${template.hora} cada semana. Las sesiones ya publicadas en el calendario no se borran.`}
+            confirmLabel="Sí, eliminar"
+            onConfirm={handleEliminar}
+            onCancel={() => setConfirmandoEliminar(false)}
+          />
         )}
       </DialogContent>
     </Dialog>
