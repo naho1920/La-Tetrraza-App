@@ -3,11 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Users } from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,8 @@ import type { UserDoc } from "@/features/auth/types";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   assignMembership,
+  contarMembresiasConPlan,
+  deletePlan,
   getMembershipForUser,
   listAllMembershipsWithAlumno,
   listAllPlansAdmin,
@@ -356,6 +359,8 @@ function Planes({ plans, onChanged }: { plans: MembershipPlan[]; onChanged: () =
   const [clasesIncluidas, setClasesIncluidas] = useState("");
   const [duracionDias, setDuracionDias] = useState("30");
   const [saving, setSaving] = useState(false);
+  const [borrando, setBorrando] = useState<MembershipPlan | null>(null);
+  const [usosDelPlan, setUsosDelPlan] = useState<number | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -391,6 +396,25 @@ function Planes({ plans, onChanged }: { plans: MembershipPlan[]; onChanged: () =
     }
   }
 
+  function handlePedirBorrar(plan: MembershipPlan) {
+    setBorrando(plan);
+    setUsosDelPlan(null);
+    contarMembresiasConPlan(plan.id).then(setUsosDelPlan);
+  }
+
+  async function handleConfirmarBorrar() {
+    if (!borrando) return;
+    try {
+      await deletePlan(borrando.id);
+      toast(`Plan "${borrando.nombre}" eliminado.`);
+      onChanged();
+    } catch {
+      toast("No se pudo eliminar el plan. Inténtalo de nuevo.", "error");
+    } finally {
+      setBorrando(null);
+    }
+  }
+
   return (
     <>
       <ul className="flex flex-col divide-y divide-border rounded-xl border">
@@ -403,16 +427,43 @@ function Planes({ plans, onChanged }: { plans: MembershipPlan[]; onChanged: () =
                 {p.clasesIncluidas != null ? ` · ${p.clasesIncluidas} clases` : " · Ilimitado"}
               </p>
             </div>
-            <Button
-              size="sm"
-              variant={p.activo ? "outline" : "secondary"}
-              onClick={() => handleToggleActivo(p)}
-            >
-              {p.activo ? "Desactivar" : "Activar"}
-            </Button>
+            <div className="flex shrink-0 gap-1.5">
+              <Button
+                size="sm"
+                variant={p.activo ? "outline" : "secondary"}
+                onClick={() => handleToggleActivo(p)}
+              >
+                {p.activo ? "Desactivar" : "Activar"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Eliminar ${p.nombre}`}
+                onClick={() => handlePedirBorrar(p)}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </div>
           </li>
         ))}
       </ul>
+
+      {borrando && (
+        <ConfirmDialog
+          title={`¿Eliminar "${borrando.nombre}"?`}
+          description={
+            usosDelPlan === null
+              ? "Revisando si algún alumno lo usó…"
+              : usosDelPlan > 0
+                ? `${usosDelPlan} membresía${usosDelPlan === 1 ? "" : "s"} usó este plan. No se borra el historial de nadie, pero esas membresías van a dejar de mostrar el nombre del plan. Esta acción no se puede deshacer.`
+                : "Ningún alumno usó este plan todavía. Esta acción no se puede deshacer."
+          }
+          confirmLabel="Sí, eliminar"
+          onConfirm={handleConfirmarBorrar}
+          onCancel={() => setBorrando(null)}
+        />
+      )}
 
       <div className="pt-1">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

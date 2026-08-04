@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ClipboardList } from "lucide-react";
 
@@ -9,7 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +79,30 @@ function SubirPlanForm({ form, onSubido }: { form: NutritionForm; onSubido: () =
     </form>
   );
 }
+
+type Orden = "reciente" | "antiguo" | "az" | "za";
+
+const ORDEN_LABEL: Record<Orden, string> = {
+  reciente: "Más reciente primero",
+  antiguo: "Más antiguo primero",
+  az: "Nombre (A-Z)",
+  za: "Nombre (Z-A)",
+};
+
+function fechaMs(form: NutritionForm): number {
+  return form.createdAt?.toDate().getTime() ?? 0;
+}
+
+function nombreDe(form: NutritionForm): string {
+  return form.respuestas.nombre || form.uid;
+}
+
+const ORDENAR: Record<Orden, (a: NutritionForm, b: NutritionForm) => number> = {
+  reciente: (a, b) => fechaMs(b) - fechaMs(a),
+  antiguo: (a, b) => fechaMs(a) - fechaMs(b),
+  az: (a, b) => nombreDe(a).localeCompare(nombreDe(b)),
+  za: (a, b) => nombreDe(b).localeCompare(nombreDe(a)),
+};
 
 const FILTROS: { estado: EstadoNutricion; label: string }[] = [
   { estado: "pendiente", label: "Pendientes" },
@@ -142,6 +174,8 @@ export default function AdminNutricionPage() {
   const [forms, setForms] = useState<NutritionForm[]>([]);
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState<NutritionForm | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<Orden>("reciente");
 
   function cargar() {
     setCargando(true);
@@ -158,6 +192,14 @@ export default function AdminNutricionPage() {
     cargar();
   }
 
+  const visibles = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    const filtrados = texto
+      ? forms.filter((f) => (f.respuestas.nombre || f.uid).toLowerCase().includes(texto))
+      : forms;
+    return [...filtrados].sort(ORDENAR[orden]);
+  }, [forms, busqueda, orden]);
+
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
       <header className="flex items-center gap-3 py-2">
@@ -170,6 +212,27 @@ export default function AdminNutricionPage() {
         options={FILTROS.map(({ estado, label }) => ({ value: estado, label }))}
       />
 
+      <div className="flex gap-2">
+        <Input
+          placeholder="Buscar por nombre…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={orden} onValueChange={(v) => setOrden((v ?? "reciente") as Orden)}>
+          <SelectTrigger className="w-auto shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(ORDEN_LABEL) as Orden[]).map((key) => (
+              <SelectItem key={key} value={key}>
+                {ORDEN_LABEL[key]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <CardContent>
           {cargando ? (
@@ -178,11 +241,18 @@ export default function AdminNutricionPage() {
                 <div key={i} className="h-11 animate-pulse rounded-lg bg-muted" />
               ))}
             </div>
-          ) : forms.length === 0 ? (
-            <EmptyState icon={ClipboardList} message="No hay formularios en esta categoría." />
+          ) : visibles.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              message={
+                forms.length === 0
+                  ? "No hay formularios en esta categoría."
+                  : "Ningún alumno coincide con tu búsqueda."
+              }
+            />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
-              {forms.map((form) => (
+              {visibles.map((form) => (
                 <li key={form.id}>
                   <button
                     className="flex w-full items-center justify-between gap-3 py-2.5 text-left text-sm"

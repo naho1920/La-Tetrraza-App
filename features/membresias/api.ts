@@ -1,7 +1,9 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -44,10 +46,31 @@ export async function getPlan(id: string): Promise<MembershipPlan | null> {
 
 export async function createPlan(plan: Omit<MembershipPlan, "id">) {
   await addDoc(collection(db, "membershipPlans"), plan);
+  invalidarCache("membresias:");
 }
 
 export async function updatePlan(id: string, data: Partial<Omit<MembershipPlan, "id">>) {
   await updateDoc(doc(db, "membershipPlans", id), data);
+  invalidarCache("membresias:");
+}
+
+/** Cuántas membresías (históricas o vigentes) usan este plan — para avisar antes de eliminarlo. */
+export async function contarMembresiasConPlan(planId: string): Promise<number> {
+  const snap = await getCountFromServer(
+    query(collection(db, "memberships"), where("planId", "==", planId))
+  );
+  return snap.data().count;
+}
+
+/**
+ * Elimina el plan del catálogo. Las membresías que ya lo usaron NO se tocan
+ * (no se borra el historial de nadie) — solo dejan de poder mostrar el
+ * nombre/precio del plan si alguien lo consulta después, por eso
+ * `contarMembresiasConPlan` existe para avisar antes de esta acción.
+ */
+export async function deletePlan(id: string) {
+  await deleteDoc(doc(db, "membershipPlans", id));
+  invalidarCache("membresias:");
 }
 
 // ---------- Alumno ----------
