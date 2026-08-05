@@ -49,7 +49,8 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
     alertas.medallasPorValidar === 0 &&
     alertas.pinesPendientes === 0 &&
     alertas.membresiasPorVencer === 0 &&
-    alertas.comprobantesPendientes === 0;
+    alertas.comprobantesPendientes === 0 &&
+    alertas.encuestasDelMes === 0;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
@@ -158,6 +159,7 @@ export function AdminDashboard({ nombre, foto }: { nombre: string; foto?: string
                 <AlertaRow href="/medallas-admin?vista=pines" label="Pines pendientes" count={alertas.pinesPendientes} />
                 <AlertaRow href="/membresias?tab=estado&filtro=por_vencer" label="Membresías por vencer" count={alertas.membresiasPorVencer} />
                 <AlertaRow href="/membresias?tab=acciones&open=comprobantes" label="Comprobantes por revisar" count={alertas.comprobantesPendientes} />
+                <AlertaRow href="/estadisticas?tab=encuestas" label="Encuestas de este mes" count={alertas.encuestasDelMes} />
               </div>
             )
           )}

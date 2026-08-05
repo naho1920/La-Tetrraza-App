@@ -9,6 +9,7 @@ import { listAchievementsByEstado, listPinesPendientes } from "@/features/medall
 import { listFormsByEstado } from "@/features/nutricion/api";
 import { listReportsByEstado } from "@/features/pagos/api";
 import type { Booking, ClassSession } from "@/features/reservas/types";
+import { contarEncuestasDelMes } from "@/features/encuestas/api";
 
 function mesISO(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -48,17 +49,20 @@ export interface Alertas {
   pinesPendientes: number;
   membresiasPorVencer: number;
   comprobantesPendientes: number;
+  encuestasDelMes: number;
 }
 
 export async function getAlertas(): Promise<Alertas> {
-  const [pendientes, enRevision, medallasPendientes, pines, memberships, comprobantes] = await Promise.all([
-    listFormsByEstado("pendiente"),
-    listFormsByEstado("en_revision"),
-    listAchievementsByEstado("pendiente"),
-    listPinesPendientes(),
-    listAllMembershipsWithAlumno(),
-    listReportsByEstado("pendiente"),
-  ]);
+  const [pendientes, enRevision, medallasPendientes, pines, memberships, comprobantes, encuestasDelMes] =
+    await Promise.all([
+      listFormsByEstado("pendiente"),
+      listFormsByEstado("en_revision"),
+      listAchievementsByEstado("pendiente"),
+      listPinesPendientes(),
+      listAllMembershipsWithAlumno(),
+      listReportsByEstado("pendiente"),
+      contarEncuestasDelMes(),
+    ]);
 
   const membresiasPorVencer = memberships.filter((m) => {
     const estado = calcularEstadoMembresia(m.membership.fechaFin);
@@ -71,6 +75,7 @@ export async function getAlertas(): Promise<Alertas> {
     pinesPendientes: pines.length,
     membresiasPorVencer,
     comprobantesPendientes: comprobantes.length,
+    encuestasDelMes,
   };
 }
 

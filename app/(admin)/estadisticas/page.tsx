@@ -3,9 +3,11 @@
 import { ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import {
   getAsistenciaPorHorario,
   getEvolucionAlumnos,
@@ -13,12 +15,23 @@ import {
   type AsistenciaPorHorario,
   type PuntoMensual,
 } from "@/features/estadisticas/api";
+import { ResumenEncuestasCoach } from "@/features/encuestas/resumen-coach";
 
 // Recharts (~255 KB) no debe bloquear el render inicial de esta ruta.
 const MiniBarChart = dynamic(() => import("./charts").then((m) => m.MiniBarChart), { ssr: false });
 const MiniLineChart = dynamic(() => import("./charts").then((m) => m.MiniLineChart), { ssr: false });
 
+type Tab = "metricas" | "encuestas";
+
+const TABS_VALIDOS: Tab[] = ["metricas", "encuestas"];
+
+function tabDesdeParam(valor: string | null): Tab {
+  return TABS_VALIDOS.includes(valor as Tab) ? (valor as Tab) : "metricas";
+}
+
 export default function EstadisticasPage() {
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => tabDesdeParam(searchParams.get("tab")));
   const [porHorario, setPorHorario] = useState<AsistenciaPorHorario[]>([]);
   const [evolucionAlumnos, setEvolucionAlumnos] = useState<PuntoMensual[]>([]);
   const [medallasPorMes, setMedallasPorMes] = useState<PuntoMensual[]>([]);
@@ -42,32 +55,47 @@ export default function EstadisticasPage() {
         <h1 className="font-heading text-xl font-semibold">Estadísticas</h1>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Asistencia por horario (este mes)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MiniBarChart data={porHorario} dataKey="asistencias" xKey="hora" />
-        </CardContent>
-      </Card>
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "metricas", label: "Métricas" },
+          { value: "encuestas", label: "Encuestas" },
+        ]}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Evolución de alumnos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MiniLineChart data={evolucionAlumnos} />
-        </CardContent>
-      </Card>
+      {tab === "metricas" ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Asistencia por horario (este mes)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniBarChart data={porHorario} dataKey="asistencias" xKey="hora" />
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Medallas por mes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MiniBarChart data={medallasPorMes} dataKey="valor" xKey="mes" />
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolución de alumnos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniLineChart data={evolucionAlumnos} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Medallas por mes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MiniBarChart data={medallasPorMes} dataKey="valor" xKey="mes" />
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <ResumenEncuestasCoach />
+      )}
     </div>
   );
 }

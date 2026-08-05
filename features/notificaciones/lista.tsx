@@ -6,6 +6,7 @@ import {
   BellOff,
   CalendarX,
   ChevronRight,
+  ClipboardList,
   MapPin,
   UserPlus,
   UtensilsCrossed,
@@ -27,6 +28,7 @@ const ICONOS: Record<IconoNotificacion, { icon: LucideIcon; clase: string }> = {
   pin: { icon: MapPin, clase: "bg-primary-subtle text-primary" },
   membresia: { icon: Wallet, clase: "bg-warning/15 text-warning" },
   clase: { icon: CalendarX, clase: "bg-destructive/10 text-destructive" },
+  encuesta: { icon: ClipboardList, clase: "bg-primary-subtle text-primary" },
 };
 
 function tiempoRelativo(fecha: Date | null): string | null {

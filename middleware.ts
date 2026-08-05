@@ -16,6 +16,7 @@ const ADMIN_PATHS = [
 // Rutas de alumno que requieren login (sin ser admin-only).
 const ALUMNO_PATHS = [
   "/diario",
+  "/encuesta",
   "/horarios",
   "/medallas",
   "/membresia",

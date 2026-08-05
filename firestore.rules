@@ -276,6 +276,22 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Encuesta mensual de satisfacción. El alumno la crea una sola vez por
+    // mes (ID determinístico {uid}_{mes} vía setDoc evita duplicados); es una
+    // foto de ese mes, así que queda inmutable después de creada.
+    match /monthlySurveys/{id} {
+      allow read: if isAdmin() || (isApproved() && resource.data.uid == request.auth.uid);
+
+      allow create: if isApproved()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'alumnoNombre', 'mes', 'animo', 'progreso', 'molestias', 'loMejor', 'aMejorar', 'createdAt'])
+        && request.resource.data.animo is int
+        && request.resource.data.animo >= 1 && request.resource.data.animo <= 5
+        && request.resource.data.progreso in ['mejorando', 'igual', 'estancado'];
+
+      allow update, delete: if isAdmin();
+    }
+
     // Links de invitación: la admin los crea/lista/revoca directo desde el
     // cliente (ya es admin). El canje lo hace un usuario SIN aprobar todavía,
     // así que nunca puede tocar esta colección directo — pasa siempre por el
