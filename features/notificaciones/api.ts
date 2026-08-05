@@ -16,6 +16,7 @@ import { calcularEstadoMembresia } from "@/features/membresias/estado";
 import { getPlanesForUser, listFormsByEstado } from "@/features/nutricion/api";
 import { getReservasFuturasDelAlumno } from "@/features/reservas/api";
 import type { ClassSession } from "@/features/reservas/types";
+import { getMiEncuestaDelMes, mesISO } from "@/features/encuestas/api";
 
 export type IconoNotificacion =
   | "acceso"
@@ -23,7 +24,13 @@ export type IconoNotificacion =
   | "nutricion"
   | "pin"
   | "membresia"
-  | "clase";
+  | "clase"
+  | "encuesta";
+
+/** La encuesta mensual se avisa desde el día 25 hasta fin de mes. */
+// TEMPORAL: bajado a 1 solo para que Naho pueda ver la notificación hoy sin
+// esperar al día 25. Revertir a 25 apenas confirme que la vio.
+const DIA_APERTURA_ENCUESTA = 1;
 
 export interface Notificacion {
   id: string;
@@ -262,6 +269,23 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
       fecha: new Date(`${session.fecha}T${session.hora}:00`),
     });
   });
+
+  // Encuesta mensual: solo se avisa desde el día 25, y solo si todavía no
+  // respondió este mes — desaparece sola en cuanto la envía, sin necesidad de
+  // marcarla como leída.
+  if (new Date().getDate() >= DIA_APERTURA_ENCUESTA) {
+    const encuesta = await getMiEncuestaDelMes(uid).catch(() => null);
+    if (!encuesta) {
+      items.push({
+        id: `encuesta-${mesISO()}`,
+        icono: "encuesta",
+        titulo: "¿Cómo te fue este mes? 📝",
+        detalle: "Contanos en menos de un minuto",
+        href: "/encuesta",
+        fecha: new Date(),
+      });
+    }
+  }
 
   return ordenar(items);
 }
