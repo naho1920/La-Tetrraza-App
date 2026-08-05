@@ -28,9 +28,7 @@ export type IconoNotificacion =
   | "encuesta";
 
 /** La encuesta mensual se avisa desde el día 25 hasta fin de mes. */
-// TEMPORAL: bajado a 1 solo para que Naho pueda ver la notificación hoy sin
-// esperar al día 25. Revertir a 25 apenas confirme que la vio.
-const DIA_APERTURA_ENCUESTA = 1;
+const DIA_APERTURA_ENCUESTA = 25;
 
 export interface Notificacion {
   id: string;
