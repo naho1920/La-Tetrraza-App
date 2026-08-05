@@ -57,6 +57,10 @@ export async function markBienvenidaVista(uid: string) {
   await setDoc(doc(db, "users", uid), { bienvenidaVista: true }, { merge: true });
 }
 
+export async function markRecorridoVisto(uid: string) {
+  await setDoc(doc(db, "users", uid), { recorridoVisto: true }, { merge: true });
+}
+
 export interface AccessRequest {
   uid: string;
   email: string;

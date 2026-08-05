@@ -676,6 +676,7 @@ export default function DiarioPage() {
         <h1 className="font-heading text-xl font-semibold">Diario</h1>
         <Button
           size="sm"
+          data-tour="registrar"
           onClick={() => {
             setPreselected(undefined);
             setShowLogDialog(true);

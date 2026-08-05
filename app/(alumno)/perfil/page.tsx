@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BookOpen, CalendarCheck, ChevronRight, CreditCard, LogOut, Scale, UserPen } from "lucide-react";
+import { Award, BookOpen, CalendarCheck, ChevronRight, CreditCard, HelpCircle, LogOut, Scale, UserPen } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ import { contarDiarioAchievements } from "@/features/diario/api";
 import { NotificationsBell } from "@/features/notificaciones/bell";
 import { contarClasesAsistidas, getWeightLogs, type WeightLog } from "@/features/perfil/api";
 import { AvatarUploader } from "@/features/perfil/avatar-uploader";
+import { iniciarRecorrido } from "@/features/recorrido/api";
 import { ThemeToggle } from "@/features/theme/theme";
 import { WeightLogForm } from "@/features/perfil/weight-log-form";
 
@@ -93,6 +94,7 @@ export default function PerfilPage() {
           <Button
             render={<Link href="/perfil/editar" />}
             variant="on-dark"
+            data-tour="editar-perfil"
           >
             <UserPen className="size-4" data-icon="inline-start" />
             Editar perfil
@@ -144,6 +146,10 @@ export default function PerfilPage() {
         </BentoTile>
       </BentoGrid>
 
+      <Button variant="ghost" size="sm" className="mx-auto" onClick={iniciarRecorrido}>
+        <HelpCircle className="size-4" data-icon="inline-start" />
+        Ver el recorrido de la app
+      </Button>
     </div>
   );
 }

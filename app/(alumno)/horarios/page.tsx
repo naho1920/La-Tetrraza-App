@@ -79,13 +79,16 @@ export default function HorariosPage() {
         <h1 className="font-heading text-xl font-semibold">Horarios</h1>
       </header>
 
-      <MonthCalendar
-        month={month}
-        onMonthChange={setMonth}
-        selected={selected}
-        onSelect={setSelected}
-        markers={markers}
-      />
+      {/* El div existe solo para darle un ancla al recorrido guiado. */}
+      <div data-tour="calendario">
+        <MonthCalendar
+          month={month}
+          onMonthChange={setMonth}
+          selected={selected}
+          onSelect={setSelected}
+          markers={markers}
+        />
+      </div>
 
       <div className="flex flex-col gap-2">
         <p className="text-sm font-semibold capitalize text-muted-foreground">{tituloDia}</p>

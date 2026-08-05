@@ -89,7 +89,9 @@ export default function NutricionPage() {
 
       {!errorCarga && form && (
         form.enviado ? (
-          <Card>
+          // El mismo `data-tour` en las dos ramas: el recorrido resalta la
+          // tarjeta que le toque ver a este alumno, tenga plan o no.
+          <Card data-tour="nutricion">
             <CardHeader>
               <CardTitle>Tu plan alimenticio</CardTitle>
             </CardHeader>
@@ -113,7 +115,7 @@ export default function NutricionPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card data-tour="nutricion">
             <CardHeader>
               <CardTitle>Formulario de nutrición</CardTitle>
             </CardHeader>

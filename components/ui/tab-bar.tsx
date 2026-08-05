@@ -31,7 +31,7 @@ export function TabBar({ tabs = TABS_ALUMNO }: { tabs?: TabItem[] }) {
 
   return (
     <div className="pointer-events-none sticky bottom-0 z-10 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-      <nav className="pointer-events-auto mx-auto flex max-w-md items-center justify-between gap-1 rounded-full bg-neutral-900/90 p-2 shadow-lg shadow-black/25 ring-1 ring-white/10 backdrop-blur dark:bg-card/90">
+      <nav data-tour="tabbar" className="pointer-events-auto mx-auto flex max-w-md items-center justify-between gap-1 rounded-full bg-neutral-900/90 p-2 shadow-lg shadow-black/25 ring-1 ring-white/10 backdrop-blur dark:bg-card/90">
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const base = match ?? href;
           const active =

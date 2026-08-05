@@ -157,6 +157,7 @@ export default function Home() {
             <Button
               render={<Link href="/horarios" />}
               variant="on-dark"
+              data-tour="ver-calendario"
             >
               Ver calendario de clases
             </Button>
@@ -167,7 +168,7 @@ export default function Home() {
             <BentoStat valor={ultimoPeso ? `${ultimoPeso} kg` : "—"} label="Peso actual" />
           </BentoTile>
 
-          <BentoTile href="/medallas" className="aspect-square">
+          <BentoTile href="/medallas" className="aspect-square" data-tour="tile-medallas">
             <BentoIcon icon={Award} />
             <BentoStat valor={medallas ?? "…"} label="Medallas ganadas" />
           </BentoTile>

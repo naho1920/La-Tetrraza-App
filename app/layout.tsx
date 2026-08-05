@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Sora, Inter } from "next/font/google";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { RecorridoListener } from "@/features/recorrido/recorrido-listener";
 import { THEME_INIT_SCRIPT } from "@/features/theme/init-script";
 import "./globals.css";
 
@@ -59,7 +60,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* Aplica el tema guardado antes de pintar el contenido (sin flash). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          {/* Acá y no en (alumno): el Home vive fuera de ese grupo de rutas. */}
+          <RecorridoListener />
+        </AuthProvider>
       </body>
     </html>
   );

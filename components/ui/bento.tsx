@@ -26,7 +26,10 @@ function BentoTile({
   className,
   children,
   ...props
-}: React.ComponentProps<"div"> & {
+  // HTMLAttributes<HTMLElement> y no ComponentProps<"div">: el tile puede
+  // renderizarse como <div> o como <Link>, y así los props extra son válidos
+  // para las dos ramas.
+}: React.HTMLAttributes<HTMLElement> & {
   variant?: BentoVariant;
   href?: string;
 }) {
@@ -39,7 +42,9 @@ function BentoTile({
 
   if (href) {
     return (
-      <Link href={href} className={clases}>
+      // Sin el spread, cualquier prop extra en un tile navegable se descartaba
+      // en silencio (la rama <div> sí los pasaba).
+      <Link href={href} className={clases} {...props}>
         {children}
       </Link>
     );
