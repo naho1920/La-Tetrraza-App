@@ -264,8 +264,18 @@ function RegistrarPago({
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   useEffect(() => {
-    if (presetUid) handleSelectUid(presetUid);
-  }, [presetUid]);
+    if (!presetUid || alumnos.length === 0) return;
+    // Un comprobante puede ser de un alumno ya desactivado o eliminado — sin
+    // este chequeo, el <Select> quedaba con un `value` que no matchea ningún
+    // <SelectItem> (porque ese alumno ya no está en la lista) y mostraba el
+    // uid crudo en vez de un nombre.
+    if (!alumnos.some((a) => a.uid === presetUid)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacciona a un prop que llega desde otra pestaña, no hay evento de UI que lo dispare
+      setMensaje("Ese alumno ya no está activo — no se le puede registrar un pago.");
+      return;
+    }
+    handleSelectUid(presetUid);
+  }, [presetUid, alumnos]);
 
   async function handleSelectUid(nuevoUid: string) {
     setUid(nuevoUid);
@@ -320,26 +330,26 @@ function RegistrarPago({
 
       {membershipId && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="monto-pago">Monto</Label>
-              <Input
-                id="monto-pago"
-                type="number"
-                min={0}
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fecha-pago">Fecha</Label>
-              <Input
-                id="fecha-pago"
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="monto-pago">Monto</Label>
+            <Input
+              id="monto-pago"
+              type="number"
+              min={0}
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+            />
+          </div>
+          {/* A su propia fila: en la mitad de una columna de 2 el selector
+              nativo de fecha se desborda en iOS. */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fecha-pago">Fecha</Label>
+            <Input
+              id="fecha-pago"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="metodo-pago">Método</Label>
@@ -560,7 +570,13 @@ export default function AdminMembresiasPage() {
   }
 
   useEffect(() => {
-    listActivatedUsers().then((users) => setAlumnos(users.filter((u) => u.rol === "alumno")));
+    // `listActivatedUsers` deja adentro a los alumnos desactivados a propósito
+    // (otras pantallas necesitan su nombre para historiales) — pero elegirlos
+    // para asignar un plan o registrar un pago no tiene sentido si ya no
+    // tienen acceso, así que se filtran solo para estos dos selectores.
+    listActivatedUsers().then((users) =>
+      setAlumnos(users.filter((u) => u.rol === "alumno" && u.aprobado))
+    );
     // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de carga inicial, no causa bugs
     cargar();
   }, []);
@@ -652,7 +668,7 @@ export default function AdminMembresiasPage() {
                     className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{alumno?.nombre ?? membership.uid}</p>
+                      <p className="truncate font-medium">{alumno?.nombre ?? "Alumno eliminado"}</p>
                       <p className="text-xs text-muted-foreground">
                         {plan?.nombre ?? "Plan"} · vence {membership.fechaFin}
                       </p>

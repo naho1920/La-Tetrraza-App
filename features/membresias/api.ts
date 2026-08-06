@@ -120,14 +120,26 @@ export async function listAllMembershipsWithAlumno(): Promise<MembershipConAlumn
       listAllPlansAdmin(),
       listActivatedUsers(),
     ]);
-    const memberships = membershipsSnap.docs.map((d) => ({
+    const todasLasMemberships = membershipsSnap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<Membership, "id">),
     }));
     const plansById = Object.fromEntries(plans.map((p) => [p.id, p]));
     const alumnosPorUid = new Map(alumnos.map((a) => [a.uid, a]));
 
-    return memberships.map((membership) => {
+    // Cada renovación crea una membresía NUEVA sin cerrar la anterior (mismo
+    // patrón que ya explica el comentario de arriba) — sin este filtro, un
+    // alumno con varias renovaciones aparecía una vez por cada una, y sus
+    // membresías viejas y ya superadas se contaban como "por vencer" o
+    // "vencidas" aunque la actual estuviera al día. Se queda solo con la de
+    // `fechaFin` más lejana por alumno, igual que `getMembershipForUser`.
+    const actualPorUid = new Map<string, Membership>();
+    for (const m of todasLasMemberships) {
+      const actual = actualPorUid.get(m.uid);
+      if (!actual || m.fechaFin > actual.fechaFin) actualPorUid.set(m.uid, m);
+    }
+
+    return [...actualPorUid.values()].map((membership) => {
       const alumno = alumnosPorUid.get(membership.uid);
       return {
         membership,

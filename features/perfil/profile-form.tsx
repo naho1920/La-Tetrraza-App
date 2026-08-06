@@ -127,34 +127,34 @@ export const ProfileForm = forwardRef<HTMLFormElement, ProfileFormProps>(functio
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="fechaNac">Fecha de nacimiento</Label>
-          <Input
-            id="fechaNac"
-            type="date"
-            value={fechaNac ?? ""}
-            onChange={(e) => setFechaNac(e.target.value)}
-          />
-          {edad !== null && (
-            <span className="text-xs text-muted-foreground">{edad} años</span>
-          )}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sexo-select">Sexo</Label>
-          <Select value={sexo} onValueChange={(v) => setSexo(v as Sexo)}>
-            <SelectTrigger id="sexo-select" className="w-full">
-              <SelectValue placeholder="Selecciona" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(SEXO_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Ambos a ancho completo: en la mitad de una columna de 2 el selector
+          nativo de fecha se desborda en iOS. */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="fechaNac">Fecha de nacimiento</Label>
+        <Input
+          id="fechaNac"
+          type="date"
+          value={fechaNac ?? ""}
+          onChange={(e) => setFechaNac(e.target.value)}
+        />
+        {edad !== null && (
+          <span className="text-xs text-muted-foreground">{edad} años</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="sexo-select">Sexo</Label>
+        <Select value={sexo} onValueChange={(v) => setSexo(v as Sexo)}>
+          <SelectTrigger id="sexo-select" className="w-full">
+            <SelectValue placeholder="Selecciona" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(SEXO_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">

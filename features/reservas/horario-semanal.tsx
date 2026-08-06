@@ -143,7 +143,9 @@ function TemplateDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
+          {/* Hora también a ancho completo: en la mitad de una columna de 2 el
+              selector nativo de hora se desborda en iOS. */}
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="hora-clase">Hora</Label>
             <Input
               id="hora-clase"
@@ -153,7 +155,7 @@ function TemplateDialog({
               onChange={(e) => setHora(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="capacidad-clase">Cupos</Label>
             <Input
               id="capacidad-clase"

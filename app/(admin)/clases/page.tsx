@@ -223,11 +223,13 @@ function OneOffSessionCard() {
           <Label htmlFor="fecha-sesion">Fecha</Label>
           <Input id="fecha-sesion" type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </div>
-        <div className="flex flex-col gap-1.5">
+        {/* Hora también a ancho completo: en la mitad de una columna de 2 el
+            selector nativo de hora se desborda en iOS. */}
+        <div className="col-span-2 flex flex-col gap-1.5">
           <Label htmlFor="hora-sesion">Hora</Label>
           <Input id="hora-sesion" type="time" required value={hora} onChange={(e) => setHora(e.target.value)} />
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="col-span-2 flex flex-col gap-1.5">
           <Label htmlFor="capacidad-sesion">Capacidad</Label>
           <Input
             id="capacidad-sesion"
