@@ -6,7 +6,58 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+/**
+ * Recorre los hijos buscando `<SelectItem>` para armar el mapa value → label
+ * que necesita `<SelectValue>`. Baja recursivamente porque los items casi
+ * siempre vienen dentro de `<SelectContent>`, de un `.map()` o de fragmentos.
+ */
+function recolectarItems(
+  node: React.ReactNode,
+  acc: { value: unknown; label: React.ReactNode }[]
+): void {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return;
+    if (child.type === SelectItem) {
+      const { value, children } = child.props as SelectPrimitive.Item.Props;
+      acc.push({ value, label: children });
+      return;
+    }
+    const { children } = child.props as { children?: React.ReactNode };
+    if (children) recolectarItems(children, acc);
+  });
+}
+
+/**
+ * `<Select.Value>` de Base UI muestra el VALOR CRUDO a menos que el Root
+ * reciba la prop `items` con el mapa value → label ("When specified,
+ * `<Select.Value>` renders the label of the selected item instead of the raw
+ * value"). Como ningún llamado de la app la pasaba, todos los selects
+ * mostraban el valor interno en vez del texto: el uid en el selector de
+ * alumnos, "1" en vez de "Lunes" en el día de la semana, etc.
+ *
+ * En vez de exigir `items` en cada uno de los ~11 llamados (fácil de olvidar
+ * en el próximo select que se agregue), este wrapper lo deriva solo de los
+ * `<SelectItem>` que ya están declarados como hijos. Se puede pasar `items`
+ * explícitamente y toma precedencia.
+ */
+function Select<Value, Multiple extends boolean | undefined = false>({
+  items,
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const derivados = React.useMemo(() => {
+    if (items) return items;
+    const acc: { value: unknown; label: React.ReactNode }[] = []
+    recolectarItems(children, acc)
+    return acc.length > 0 ? acc : undefined
+  }, [items, children])
+
+  return (
+    <SelectPrimitive.Root items={derivados} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (

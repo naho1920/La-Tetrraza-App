@@ -177,4 +177,40 @@
   html {
     @apply font-sans;
   }
+
+  /*
+   * Safari/iOS le da a los inputs de fecha y hora un ancho intrínseco propio
+   * del control nativo, que ignora el `width: 100%` del contenedor y se
+   * desborda de la tarjeta (en Chrome no pasa: ahí sí respetan el ancho, por
+   * eso no se reproduce en escritorio). El ancho real lo impone el
+   * pseudo-elemento interno de WebKit que dibuja el valor, así que hay que
+   * neutralizarlo ahí además de en el input.
+   */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value,
+  input[type="month"]::-webkit-date-and-time-value {
+    /* Sin esto el valor se centra y arrastra el ancho mínimo del control. */
+    text-align: left;
+    min-width: 0;
+  }
+
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-datetime-edit,
+  input[type="datetime-local"]::-webkit-datetime-edit,
+  input[type="month"]::-webkit-datetime-edit {
+    min-width: 0;
+    /* Recorta en vez de empujar el borde del input hacia afuera. */
+    overflow: hidden;
+  }
 }

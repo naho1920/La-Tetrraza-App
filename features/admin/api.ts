@@ -1,6 +1,5 @@
 import {
   collection,
-  deleteDoc,
   doc,
   orderBy,
   query,
@@ -8,6 +7,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 
 import { conCache, invalidarCache } from "@/lib/cache";
@@ -47,11 +47,40 @@ export async function reactivarAcceso(email: string, uid?: string) {
   invalidarCache("admin:");
 }
 
-/** Quita al alumno de la lista de acceso y borra su perfil (no su historial). */
+/**
+ * Quita al alumno de la lista de acceso y borra su perfil (no su historial).
+ *
+ * En un batch para que sea atómico: antes eran dos `deleteDoc` seguidos, así
+ * que si el segundo fallaba el alumno quedaba sin acceso pero CON su perfil en
+ * `users` — y ese perfil es justo lo que leen los selectores de "Asignar plan"
+ * y "Registrar pago", donde seguía apareciendo como si nada.
+ */
 export async function eliminarAlumno(email: string, uid?: string) {
-  await deleteDoc(doc(db, "approvedEmails", email));
-  if (uid) await deleteDoc(doc(db, "users", uid));
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "approvedEmails", email));
+  if (uid) batch.delete(doc(db, "users", uid));
+  await batch.commit();
   invalidarCache("admin:");
+}
+
+/**
+ * Alumnos que hoy realmente pueden entrar: están en `users` y su correo sigue
+ * habilitado en `approvedEmails`. Para los selectores donde elegir a alguien
+ * sin acceso no tiene sentido (asignar plan, registrar pago).
+ *
+ * `listActivatedUsers` a propósito no filtra nada, y `users.aprobado` por sí
+ * solo no alcanza: cruzar contra la lista de acceso es lo que de verdad
+ * refleja quién puede usar la app hoy. Las dos consultas ya están cacheadas,
+ * así que esto no agrega lecturas.
+ */
+export async function listAlumnosConAcceso(): Promise<UserDoc[]> {
+  const [users, approved] = await Promise.all([listActivatedUsers(), listApprovedEmails()]);
+  const habilitados = new Set(
+    approved.filter((a) => a.activo !== false).map((a) => a.email.toLowerCase())
+  );
+  return users.filter(
+    (u) => u.rol === "alumno" && u.aprobado && habilitados.has(u.email.toLowerCase())
+  );
 }
 
 export async function addApprovedEmail(email: string) {

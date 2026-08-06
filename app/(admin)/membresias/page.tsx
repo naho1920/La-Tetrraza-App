@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { toast } from "@/components/ui/toast";
-import { listActivatedUsers } from "@/features/admin/api";
+import { listAlumnosConAcceso } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
@@ -570,13 +570,9 @@ export default function AdminMembresiasPage() {
   }
 
   useEffect(() => {
-    // `listActivatedUsers` deja adentro a los alumnos desactivados a propósito
-    // (otras pantallas necesitan su nombre para historiales) — pero elegirlos
-    // para asignar un plan o registrar un pago no tiene sentido si ya no
-    // tienen acceso, así que se filtran solo para estos dos selectores.
-    listActivatedUsers().then((users) =>
-      setAlumnos(users.filter((u) => u.rol === "alumno" && u.aprobado))
-    );
+    // Solo alumnos que hoy pueden entrar: elegir a alguien sin acceso para
+    // asignarle un plan o registrarle un pago no tiene sentido.
+    listAlumnosConAcceso().then(setAlumnos);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de carga inicial, no causa bugs
     cargar();
   }, []);
