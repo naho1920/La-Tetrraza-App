@@ -152,6 +152,18 @@ export async function assignMembership(uid: string, planId: string, fechaInicioI
   invalidarCache("membresias:");
 }
 
+/**
+ * Registra el pago Y renueva la membresía por la duración del mismo plan que
+ * ya tenía — antes solo quedaba el registro histórico del pago sin tocar la
+ * membresía, así que un alumno que ya pagó seguía apareciendo como "por
+ * vencer" o "vencida" hasta que alguien le asignara un plan nuevo a mano.
+ *
+ * Sigue el mismo patrón que ya usa `assignMembership` (una membresía nueva
+ * por cada período, en vez de editar `fechaFin` en la existente — ver el
+ * comentario en `listAllMembershipsWithAlumno`). Extiende desde el
+ * vencimiento actual si todavía no venció, o desde hoy si ya venció, para
+ * que la renovación nunca regale ni le quite días al alumno.
+ */
 export async function registerPayment(
   membershipId: string,
   uid: string,
@@ -160,13 +172,26 @@ export async function registerPayment(
   metodo: string,
   notas: string
 ) {
-  await addDoc(collection(db, "payments"), {
-    membershipId,
-    uid,
-    monto,
-    fecha,
-    metodo,
-    notas,
-    registradoAt: serverTimestamp(),
-  });
+  const membershipSnap = await getDoc(doc(db, "memberships", membershipId));
+  const membership = membershipSnap.data() as Omit<Membership, "id"> | undefined;
+  if (!membership) throw new Error("Esta membresía ya no existe.");
+
+  const plan = await getPlan(membership.planId);
+  if (!plan) throw new Error("El plan de esta membresía ya no existe.");
+
+  const hoy = toISODate(new Date());
+  const fechaInicioRenovacion = membership.fechaFin > hoy ? membership.fechaFin : hoy;
+
+  await Promise.all([
+    addDoc(collection(db, "payments"), {
+      membershipId,
+      uid,
+      monto,
+      fecha,
+      metodo,
+      notas,
+      registradoAt: serverTimestamp(),
+    }),
+    assignMembership(uid, plan.id, fechaInicioRenovacion, plan.duracionDias),
+  ]);
 }

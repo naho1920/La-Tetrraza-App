@@ -247,9 +247,12 @@ function Comprobantes({ onRevisado }: { onRevisado: (uid: string) => void }) {
 function RegistrarPago({
   alumnos,
   presetUid,
+  onRenovado,
 }: {
   alumnos: UserDoc[];
   presetUid?: string;
+  /** La renovación crea una membresía nueva — refresca la pestaña "Estado". */
+  onRenovado: () => void;
 }) {
   const [uid, setUid] = useState("");
   const [membershipId, setMembershipId] = useState<string | null>(null);
@@ -284,9 +287,15 @@ function RegistrarPago({
     setSaving(true);
     try {
       await registerPayment(membershipId, uid, Number(monto), fecha, metodo, "");
-      toast("Pago registrado.");
+      toast("¡Pago registrado! La membresía quedó renovada ✓");
       setMonto("");
       setMetodo("");
+      // La renovación crea una membresía NUEVA (mismo patrón que "Asignar
+      // plan") — hay que refrescar el id por si la coach registra otro pago
+      // para el mismo alumno sin volver a elegirlo de la lista.
+      const renovada = await getMembershipForUser(uid);
+      setMembershipId(renovada?.id ?? null);
+      onRenovado();
     } catch {
       toast("No se pudo registrar el pago. Inténtalo de nuevo.", "error");
     } finally {
@@ -671,7 +680,7 @@ export default function AdminMembresiasPage() {
           </CollapsibleSection>
 
           <CollapsibleSection title="Registrar pago">
-            <RegistrarPago alumnos={alumnos} presetUid={presetUid} />
+            <RegistrarPago alumnos={alumnos} presetUid={presetUid} onRenovado={cargar} />
           </CollapsibleSection>
 
           <CollapsibleSection title="Planes del box" badge={plans.filter(p => p.activo).length}>
