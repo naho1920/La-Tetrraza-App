@@ -1,7 +1,8 @@
-import { Timestamp, collection, doc, query, where } from "firebase/firestore";
+import { Timestamp, collection, query, where } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
-import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
+import { getCountFromServer, getDocs } from "@/lib/firestore-safe";
+import { contarAlumnosActivos, listActivatedUsers } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import { listAllMembershipsWithAlumno } from "@/features/membresias/api";
 import { calcularEstadoMembresia } from "@/features/membresias/estado";
@@ -105,7 +106,11 @@ async function contarMedallasDelMes(inicioMes: Date, finMes: Date): Promise<numb
   try {
     const snap = await getCountFromServer(query(collection(db, "achievements"), ...rango));
     return snap.data().count;
-  } catch {
+  } catch (err) {
+    // Solo reintenta si falta el índice compuesto — cualquier otro error
+    // (por ejemplo nuestro propio timeout de 8s) no debe disparar la lectura
+    // más pesada justo cuando la red ya está fallando.
+    if ((err as { code?: string }).code !== "failed-precondition") throw err;
     const snap = await getDocs(
       query(collection(db, "achievements"), where("estado", "==", "validado"))
     );
@@ -129,14 +134,23 @@ export async function getMetricasDelMes(): Promise<MetricasMes> {
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
 
-  const bookingsSnap = await getDocs(
-    query(
-      collection(db, "bookings"),
-      where("asistio", "==", true),
-      where("fecha", ">=", toISODate(inicioMes)),
-      where("fecha", "<=", toISODate(finMes))
-    )
-  );
+  // Las 3 lecturas son independientes entre sí — antes el nombre del alumno
+  // más constante y los 2 conteos esperaban, uno detrás de otro, a que
+  // terminara la consulta de asistencias, aunque ninguno depende de su
+  // resultado.
+  const [bookingsSnap, medallasDesbloqueadas, alumnos, alumnosActivos] = await Promise.all([
+    getDocs(
+      query(
+        collection(db, "bookings"),
+        where("asistio", "==", true),
+        where("fecha", ">=", toISODate(inicioMes)),
+        where("fecha", "<=", toISODate(finMes))
+      )
+    ),
+    contarMedallasDelMes(inicioMes, finMes),
+    listActivatedUsers(),
+    contarAlumnosActivos(),
+  ]);
   const bookings = bookingsSnap.docs.map((d) => d.data() as Booking);
 
   const asistenciasPorAlumno = new Map<string, number>();
@@ -153,22 +167,14 @@ export async function getMetricasDelMes(): Promise<MetricasMes> {
     }
   }
 
-  let alumnoMasConstante: { nombre: string; asistencias: number } | null = null;
-  if (topUid) {
-    const userSnap = await getDoc(doc(db, "users", topUid));
-    alumnoMasConstante = {
-      nombre: userSnap.exists() ? (userSnap.data() as UserDoc).nombre : topUid,
-      asistencias: topAsistencias,
-    };
-  }
-
-  const [medallasDesbloqueadas, alumnosSnap] = await Promise.all([
-    contarMedallasDelMes(inicioMes, finMes),
-    getCountFromServer(
-      query(collection(db, "users"), where("rol", "==", "alumno"), where("aprobado", "==", true))
-    ),
-  ]);
-  const alumnosActivos = alumnosSnap.data().count;
+  // El nombre sale de la lista de alumnos ya pedida arriba — antes era un
+  // `getDoc` aparte para un documento que ya estaba en esa misma lista.
+  const alumnoMasConstante = topUid
+    ? {
+        nombre: alumnos.find((a) => a.uid === topUid)?.nombre ?? topUid,
+        asistencias: topAsistencias,
+      }
+    : null;
 
   return {
     asistenciasTotales: bookings.length,

@@ -276,6 +276,21 @@ export async function marcarAsistencia(bookingId: string, asistio: boolean) {
   await updateDoc(doc(db, "bookings", bookingId), { asistio });
 }
 
+/**
+ * `classSessions` por id, cacheada: el Home del alumno la pide para armar las
+ * próximas clases y las notificaciones la piden otra vez para detectar
+ * cancelaciones — sin esto se leía el mismo documento dos veces en la misma
+ * pantalla porque ninguna de las dos rutas sabía de la otra.
+ */
+export async function getClassSession(id: string): Promise<ClassSession | null> {
+  return conCache(`reservas:session-${id}`, async () => {
+    const snap = await getDoc(doc(db, "classSessions", id));
+    return snap.exists()
+      ? ({ id: snap.id, ...(snap.data() as Omit<ClassSession, "id">) } as ClassSession)
+      : null;
+  });
+}
+
 // ---------- Home del alumno ----------
 
 /**
@@ -316,7 +331,12 @@ async function fetchReservasFuturasDelAlumno(uid: string, hoyISO: string): Promi
       )
     );
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }));
-  } catch {
+  } catch (err) {
+    // Solo reintenta si es la falta del índice compuesto — cualquier otro
+    // error (por ejemplo nuestro propio timeout de 8s en una red lenta) NO
+    // debe disparar una segunda consulta más pesada justo cuando la red ya
+    // está fallando.
+    if ((err as { code?: string }).code !== "failed-precondition") throw err;
     const snap = await getDocs(
       query(collection(db, "bookings"), where("uid", "==", uid), where("estado", "==", "reservado"))
     );
@@ -339,14 +359,7 @@ export async function getUpcomingBookingsForUser(
   const todas = await getReservasFuturasDelAlumno(uid, hoyISO);
   const bookings = todas.slice(0, MARGEN_CANCELADAS);
 
-  const sessions = await Promise.all(
-    bookings.map(async (b) => {
-      const sessionSnap = await getDoc(doc(db, "classSessions", b.sessionId));
-      return sessionSnap.exists()
-        ? ({ id: sessionSnap.id, ...(sessionSnap.data() as Omit<ClassSession, "id">) } as ClassSession)
-        : null;
-    })
-  );
+  const sessions = await Promise.all(bookings.map((b) => getClassSession(b.sessionId)));
 
   return bookings
     .map((booking, i) => ({ booking, session: sessions[i] }))

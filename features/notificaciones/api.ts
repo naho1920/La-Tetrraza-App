@@ -1,7 +1,3 @@
-import { doc } from "firebase/firestore";
-
-import { db } from "@/lib/firebase/client";
-import { getDoc } from "@/lib/firestore-safe";
 import { listActivatedUsers, listApprovedEmails, listSolicitudesPendientes } from "@/features/admin/api";
 import type { UserDoc } from "@/features/auth/types";
 import {
@@ -14,8 +10,7 @@ import type { Skill } from "@/features/medallas/types";
 import { getMembershipForUser, listAllMembershipsWithAlumno } from "@/features/membresias/api";
 import { calcularEstadoMembresia } from "@/features/membresias/estado";
 import { getPlanesForUser, listFormsByEstado } from "@/features/nutricion/api";
-import { getReservasFuturasDelAlumno } from "@/features/reservas/api";
-import type { ClassSession } from "@/features/reservas/types";
+import { getClassSession, getReservasFuturasDelAlumno } from "@/features/reservas/api";
 import { getMiEncuestaDelMes, mesISO } from "@/features/encuestas/api";
 
 export type IconoNotificacion =
@@ -179,11 +174,17 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
   // función traía TODO el historial de reservas del alumno y descartaba las
   // pasadas en el cliente — la misma consulta sin techo que
   // getUpcomingBookingsForUser, ahora unificada en un solo lugar).
-  const [achievements, planes, membership, proximas] = await Promise.all([
+  //
+  // La encuesta va en esta misma ola: no depende de nada de lo anterior (solo
+  // del uid, que ya está disponible), así que no hace falta esperar a que
+  // termine todo lo demás para empezar a pedirla.
+  const encuestaAplica = new Date().getDate() >= DIA_APERTURA_ENCUESTA;
+  const [achievements, planes, membership, proximas, encuestaDelMes] = await Promise.all([
     listAchievementsForUser(uid),
     getPlanesForUser(uid).catch(() => []),
     getMembershipForUser(uid).catch(() => null),
     getReservasFuturasDelAlumno(uid, hoyISO),
+    encuestaAplica ? getMiEncuestaDelMes(uid).catch(() => null) : Promise.resolve(null),
   ]);
 
   const items: Notificacion[] = [];
@@ -193,7 +194,15 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
     const fecha = a.validadoAt?.toDate();
     return fecha && fecha >= desde && (a.estado === "validado" || a.estado === "rechazado");
   });
-  const skills = await Promise.all([...new Set(recientes.map((a) => a.skillId))].map((id) => getSkill(id)));
+  const skillIds = [...new Set(recientes.map((a) => a.skillId))];
+
+  // Los nombres de medalla y las sesiones de clase no dependen uno del otro —
+  // antes se pedían en dos olas seguidas aunque ninguna necesitaba el
+  // resultado de la otra.
+  const [skills, sesiones] = await Promise.all([
+    Promise.all(skillIds.map((id) => getSkill(id))),
+    Promise.all(proximas.map((b) => getClassSession(b.sessionId))),
+  ]);
   const skillsPorId = new Map<string, Skill>();
   for (const skill of skills) if (skill) skillsPorId.set(skill.id, skill);
 
@@ -250,12 +259,6 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
   }
 
   // Clases futuras que tenías reservadas y fueron canceladas.
-  const sesiones = await Promise.all(
-    proximas.map(async (b) => {
-      const snap = await getDoc(doc(db, "classSessions", b.sessionId));
-      return snap.exists() ? ({ id: snap.id, ...(snap.data() as Omit<ClassSession, "id">) } as ClassSession) : null;
-    })
-  );
   sesiones.forEach((session) => {
     if (!session || session.estado !== "cancelada") return;
     items.push({
@@ -271,18 +274,15 @@ async function getNotificacionesAlumno(uid: string): Promise<Notificacion[]> {
   // Encuesta mensual: solo se avisa desde el día 25, y solo si todavía no
   // respondió este mes — desaparece sola en cuanto la envía, sin necesidad de
   // marcarla como leída.
-  if (new Date().getDate() >= DIA_APERTURA_ENCUESTA) {
-    const encuesta = await getMiEncuestaDelMes(uid).catch(() => null);
-    if (!encuesta) {
-      items.push({
-        id: `encuesta-${mesISO()}`,
-        icono: "encuesta",
-        titulo: "¿Cómo te fue este mes? 📝",
-        detalle: "Contanos en menos de un minuto",
-        href: "/encuesta",
-        fecha: new Date(),
-      });
-    }
+  if (encuestaAplica && !encuestaDelMes) {
+    items.push({
+      id: `encuesta-${mesISO()}`,
+      icono: "encuesta",
+      titulo: "¿Cómo te fue este mes? 📝",
+      detalle: "Contanos en menos de un minuto",
+      href: "/encuesta",
+      fecha: new Date(),
+    });
   }
 
   return ordenar(items);

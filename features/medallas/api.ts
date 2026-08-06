@@ -74,6 +74,9 @@ export async function createSkill(skill: Omit<Skill, "id">) {
 
 export async function updateSkill(id: string, data: Partial<Omit<Skill, "id">>) {
   await updateDoc(doc(db, "skills", id), data);
+  // getSkill ahora está cacheada — sin esto, editar una medalla podía tardar
+  // hasta 30s en verse en cualquier pantalla que la haya leído antes.
+  invalidarCache(`medallas:skill-${id}`);
 }
 
 /** Cuántos logros (de cualquier alumno) usan esta medalla — para avisar antes de eliminarla. */
@@ -90,6 +93,7 @@ export async function contarAchievementsConSkill(skillId: string): Promise<numbe
  */
 export async function deleteSkill(id: string) {
   await deleteDoc(doc(db, "skills", id));
+  invalidarCache(`medallas:skill-${id}`);
 }
 
 // Cacheada porque el Home del alumno y la campanita de notificaciones la piden
@@ -141,8 +145,13 @@ export async function marcarCelebrado(id: string) {
 }
 
 export async function getSkill(id: string): Promise<Skill | null> {
-  const snap = await getDoc(doc(db, "skills", id));
-  return snap.exists() ? ({ id: snap.id, ...(snap.data() as Omit<Skill, "id">) }) : null;
+  // Cacheada: en una sola carga de Perfil se pedía la misma medalla hasta 3
+  // veces por caminos distintos (la página, la campanita de notificaciones y
+  // el listener de celebraciones), cada una con su propio round trip.
+  return conCache(`medallas:skill-${id}`, async () => {
+    const snap = await getDoc(doc(db, "skills", id));
+    return snap.exists() ? ({ id: snap.id, ...(snap.data() as Omit<Skill, "id">) }) : null;
+  });
 }
 
 export async function getUncelebratedValidated(uid: string): Promise<Achievement | null> {

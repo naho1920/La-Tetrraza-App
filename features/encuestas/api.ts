@@ -3,6 +3,7 @@ import { collection, doc, query, serverTimestamp, setDoc, where } from "firebase
 import { conCache, invalidarCache } from "@/lib/cache";
 import { db } from "@/lib/firebase/client";
 import { getCountFromServer, getDoc, getDocs } from "@/lib/firestore-safe";
+import { contarAlumnosActivos } from "@/features/admin/api";
 import type { PuntoMensual } from "@/features/estadisticas/api";
 import type { MonthlySurvey, ProgresoPercibido } from "./types";
 
@@ -83,11 +84,12 @@ export interface ResumenMesEncuestas {
 }
 
 export async function getResumenDelMes(mes: string): Promise<ResumenMesEncuestas> {
-  const [encuestas, alumnosSnap] = await Promise.all([
+  // `contarAlumnosActivos` reusa la lista de alumnos que ya pide el Home de
+  // la coach — antes esta pantalla pedía el mismo conteo por su cuenta con un
+  // `getCountFromServer` aparte.
+  const [encuestas, alumnosActivos] = await Promise.all([
     listEncuestasDelMes(mes),
-    getCountFromServer(
-      query(collection(db, "users"), where("rol", "==", "alumno"), where("aprobado", "==", true))
-    ),
+    contarAlumnosActivos(),
   ]);
 
   const progreso: Record<ProgresoPercibido, number> = { mejorando: 0, igual: 0, estancado: 0 };
@@ -101,7 +103,7 @@ export async function getResumenDelMes(mes: string): Promise<ResumenMesEncuestas
 
   return {
     respondieron: encuestas.length,
-    alumnosActivos: alumnosSnap.data().count,
+    alumnosActivos,
     promedioAnimo: encuestas.length ? sumaAnimo / encuestas.length : null,
     conMolestias,
     progreso,

@@ -46,9 +46,13 @@ export async function getFormForUser(uid: string): Promise<NutritionForm | null>
  */
 export async function getOrCreateDraftForm(
   uid: string,
-  prellenado: Record<string, string>
+  prellenado: Record<string, string>,
+  // Si quien llama ya sabe cuál es el último formulario (o que no hay
+  // ninguno), lo pasa acá y se ahorra volver a pedirlo — la pantalla de
+  // Nutrición ya lo consulta antes de decidir si necesita crear un borrador.
+  ultimoConocido?: NutritionForm | null
 ): Promise<NutritionForm> {
-  const ultimo = await getFormForUser(uid);
+  const ultimo = ultimoConocido !== undefined ? ultimoConocido : await getFormForUser(uid);
   if (ultimo && !ultimo.enviado) return ultimo;
 
   const nuevo = {

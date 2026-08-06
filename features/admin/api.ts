@@ -118,6 +118,18 @@ export async function listActivatedUsers(): Promise<UserDoc[]> {
   });
 }
 
+/**
+ * Cuántos alumnos con acceso activo hay. Deriva el conteo de
+ * `listActivatedUsers()` (ya cacheada) en vez de pedir un `getCountFromServer`
+ * aparte — antes el Home de la coach y el resumen de encuestas pedían este
+ * mismo conteo cada uno por su cuenta, dos round trips completos para el
+ * mismo número.
+ */
+export async function contarAlumnosActivos(): Promise<number> {
+  const alumnos = await listActivatedUsers();
+  return alumnos.filter((u) => u.aprobado).length;
+}
+
 // ---------- Solicitudes de acceso ----------
 
 export async function listSolicitudesPendientes(): Promise<AccessRequest[]> {

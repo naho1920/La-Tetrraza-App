@@ -14,11 +14,17 @@ export async function ensureUserDocument(user: User): Promise<UserDoc | null> {
   const email = (user.email ?? "").toLowerCase();
   if (!email) return null;
 
-  const approvedSnap = await getDoc(doc(db, "approvedEmails", email));
-  if (!approvedSnap.exists() || approvedSnap.data().activo === false) return null;
-
+  // Las dos lecturas son independientes entre sí — la de `users` usa
+  // `user.uid`, ya disponible, no el resultado de `approvedEmails` — pero
+  // antes iban una detrás de otra. Como esto corre al arrancar CUALQUIER
+  // pantalla de la app (es lo primero que hace el AuthProvider), esa espera
+  // de más se paga en todas partes.
   const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
+  const [approvedSnap, userSnap] = await Promise.all([
+    getDoc(doc(db, "approvedEmails", email)),
+    getDoc(userRef),
+  ]);
+  if (!approvedSnap.exists() || approvedSnap.data().activo === false) return null;
 
   if (userSnap.exists()) {
     return userSnap.data() as UserDoc;

@@ -36,11 +36,15 @@ export default function NutricionPage() {
         }
         return;
       }
-      const nuevo = await getOrCreateDraftForm(userDoc.uid, {
-        nombre: userDoc.nombre ?? "",
-        fechaNac: userDoc.fechaNac ?? "",
-        estaturaCm: userDoc.estaturaCm ? String(userDoc.estaturaCm) : "",
-      });
+      const nuevo = await getOrCreateDraftForm(
+        userDoc.uid,
+        {
+          nombre: userDoc.nombre ?? "",
+          fechaNac: userDoc.fechaNac ?? "",
+          estaturaCm: userDoc.estaturaCm ? String(userDoc.estaturaCm) : "",
+        },
+        existente
+      );
       setForm(nuevo);
     } catch {
       setErrorCarga(true);
@@ -53,11 +57,17 @@ export default function NutricionPage() {
     if (!userDoc) return;
     setReenviando(true);
     try {
-      const nuevo = await getOrCreateDraftForm(userDoc.uid, {
-        nombre: userDoc.nombre ?? "",
-        fechaNac: userDoc.fechaNac ?? "",
-        estaturaCm: userDoc.estaturaCm ? String(userDoc.estaturaCm) : "",
-      });
+      // `form` ya es el último formulario del alumno (el botón que llama a
+      // esto solo se muestra cuando `form.estado === "plan_enviado"`).
+      const nuevo = await getOrCreateDraftForm(
+        userDoc.uid,
+        {
+          nombre: userDoc.nombre ?? "",
+          fechaNac: userDoc.fechaNac ?? "",
+          estaturaCm: userDoc.estaturaCm ? String(userDoc.estaturaCm) : "",
+        },
+        form
+      );
       setForm(nuevo);
       setPlan(null);
     } finally {
