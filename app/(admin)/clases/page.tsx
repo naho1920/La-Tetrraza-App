@@ -89,11 +89,16 @@ function GenerarClasesDialog({
     setMensaje(null);
     try {
       const creadas = await generarSesionesParaFechas([...seleccionadas].sort());
-      setMensaje(
-        creadas === 0
-          ? "No se creó ninguna clase nueva: esos días ya estaban generados o tus plantillas no tienen clases esos días."
-          : `¡Listo! Se crearon ${creadas} clases. Ya se ven en el calendario 💜`
-      );
+      if (creadas === 0) {
+        setMensaje(
+          "No se creó ninguna clase nueva: esos días ya estaban generados o tus plantillas no tienen clases esos días."
+        );
+      } else {
+        setMensaje(`¡Listo! Se crearon ${creadas} clases. Ya se ven en el calendario 💜`);
+        // El mensaje de arriba queda dentro del diálogo — el toast avisa aunque
+        // ya lo hayas cerrado, que es cuando de verdad hace falta la confirmación.
+        toast(`¡Clases publicadas! Se crearon ${creadas} clases nuevas en el calendario 💜`);
+      }
       setSeleccionadas(new Set());
     } finally {
       setGenerando(false);
