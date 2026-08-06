@@ -457,7 +457,7 @@ export default function AdminClasesPage() {
       {/* Tab: plantillas */}
       {tab === "plantillas" && (
         <div className="flex flex-col gap-6">
-          <HorarioSemanal templates={templates} onChanged={loadTemplates} />
+          <HorarioSemanal templates={templates} onTemplatesChange={setTemplates} />
           <div className="h-px bg-border" />
           <OneOffSessionCard />
         </div>

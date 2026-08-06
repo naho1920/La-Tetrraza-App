@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pause, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Check, Eraser, Pause, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import {
   createTemplate,
   createTemplatesBulk,
+  deleteAllTemplates,
   deleteTemplate,
   updateTemplate,
 } from "./api";
@@ -44,12 +45,19 @@ function TemplateDialog({
   diaInicial,
   onClose,
   onSaved,
+  onTemplatesChange,
 }: {
   /** Si viene, es edición; si no, creación. */
   template: ClassTemplate | null;
   diaInicial: number;
   onClose: () => void;
   onSaved: (mensaje: string) => void;
+  /**
+   * Parcha el estado local al instante — sin esto, la UI dependía de volver a
+   * pedirle la lista completa a Firestore, y ese round trip podía tardar (o
+   * quedarse esperando) antes de que la clase eliminada dejara de verse.
+   */
+  onTemplatesChange: (updater: (prev: ClassTemplate[]) => ClassTemplate[]) => void;
 }) {
   const [diaSemana, setDiaSemana] = useState(String(template?.diaSemana ?? diaInicial));
   const [hora, setHora] = useState(template?.hora ?? "");
@@ -72,9 +80,13 @@ function TemplateDialog({
       };
       if (editando) {
         await updateTemplate(template.id, data);
+        onTemplatesChange((prev) =>
+          prev.map((t) => (t.id === template.id ? { ...t, ...data } : t))
+        );
         onSaved(`Clase de ${DIAS_SEMANA[data.diaSemana]} ${hora} actualizada ✓`);
       } else {
-        await createTemplate({ ...data, activa: true });
+        const creada = await createTemplate({ ...data, activa: true });
+        onTemplatesChange((prev) => [...prev, creada]);
         onSaved(`Clase de ${DIAS_SEMANA[data.diaSemana]} ${hora} agregada al horario ✓`);
       }
     } finally {
@@ -84,7 +96,9 @@ function TemplateDialog({
 
   async function handlePausar() {
     if (!template) return;
-    await updateTemplate(template.id, { activa: !template.activa });
+    const activa = !template.activa;
+    await updateTemplate(template.id, { activa });
+    onTemplatesChange((prev) => prev.map((t) => (t.id === template.id ? { ...t, activa } : t)));
     onSaved(
       template.activa
         ? `Clase de ${DIAS_SEMANA[template.diaSemana]} ${template.hora} pausada — no se generará hasta que la reactives.`
@@ -95,6 +109,7 @@ function TemplateDialog({
   async function handleEliminar() {
     if (!template) return;
     await deleteTemplate(template.id);
+    onTemplatesChange((prev) => prev.filter((t) => t.id !== template.id));
     onSaved(`Clase de ${DIAS_SEMANA[template.diaSemana]} ${template.hora} eliminada del horario.`);
   }
 
@@ -212,10 +227,12 @@ function QuickSetupDialog({
   templates,
   onClose,
   onSaved,
+  onTemplatesChange,
 }: {
   templates: ClassTemplate[];
   onClose: () => void;
   onSaved: (mensaje: string) => void;
+  onTemplatesChange: (updater: (prev: ClassTemplate[]) => ClassTemplate[]) => void;
 }) {
   const [dias, setDias] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [horas, setHoras] = useState<Set<string>>(new Set(HORARIOS_SUGERIDOS));
@@ -270,7 +287,7 @@ function QuickSetupDialog({
   async function handleCrear() {
     setSaving(true);
     try {
-      await createTemplatesBulk(
+      const creadas = await createTemplatesBulk(
         nuevas.map((n) => ({
           ...n,
           nombre,
@@ -278,6 +295,7 @@ function QuickSetupDialog({
           activa: true,
         }))
       );
+      onTemplatesChange((prev) => [...prev, ...creadas]);
       onSaved(`¡Horario listo! Se agregaron ${nuevas.length} clases semanales ✓`);
     } finally {
       setSaving(false);
@@ -417,14 +435,16 @@ function QuickSetupDialog({
 
 export function HorarioSemanal({
   templates,
-  onChanged,
+  onTemplatesChange,
 }: {
   templates: ClassTemplate[];
-  onChanged: () => void;
+  onTemplatesChange: (updater: (prev: ClassTemplate[]) => ClassTemplate[]) => void;
 }) {
   const [editando, setEditando] = useState<ClassTemplate | null>(null);
   const [creandoEnDia, setCreandoEnDia] = useState<number | null>(null);
   const [mostrarSetup, setMostrarSetup] = useState(false);
+  const [confirmandoVaciar, setConfirmandoVaciar] = useState(false);
+  const [vaciando, setVaciando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   const sinHorario = templates.length === 0;
@@ -434,7 +454,18 @@ export function HorarioSemanal({
     setCreandoEnDia(null);
     setMostrarSetup(false);
     setMensaje(texto);
-    onChanged();
+  }
+
+  async function handleVaciar() {
+    setVaciando(true);
+    try {
+      await deleteAllTemplates();
+      onTemplatesChange(() => []);
+      setMensaje("Horario vaciado — ya puedes configurar uno nuevo desde cero.");
+    } finally {
+      setVaciando(false);
+      setConfirmandoVaciar(false);
+    }
   }
 
   return (
@@ -447,10 +478,20 @@ export function HorarioSemanal({
           </p>
         </div>
         {!sinHorario && (
-          <Button variant="outline" size="sm" onClick={() => setMostrarSetup(true)}>
-            <Sparkles className="size-3.5" data-icon="inline-start" />
-            Config. rápida
-          </Button>
+          <div className="flex shrink-0 gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => setMostrarSetup(true)}>
+              <Sparkles className="size-3.5" data-icon="inline-start" />
+              Config. rápida
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Vaciar horario"
+              onClick={() => setConfirmandoVaciar(true)}
+            >
+              <Eraser className="size-3.5" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -524,6 +565,7 @@ export function HorarioSemanal({
             setCreandoEnDia(null);
           }}
           onSaved={handleSaved}
+          onTemplatesChange={onTemplatesChange}
         />
       )}
 
@@ -532,6 +574,17 @@ export function HorarioSemanal({
           templates={templates}
           onClose={() => setMostrarSetup(false)}
           onSaved={handleSaved}
+          onTemplatesChange={onTemplatesChange}
+        />
+      )}
+
+      {confirmandoVaciar && (
+        <ConfirmDialog
+          title="¿Eliminar todos los horarios y empezar de 0?"
+          description={`Se borran las ${templates.length} clases semanales configuradas. Las sesiones ya publicadas en el calendario no se borran, pero ninguna clase nueva se va a generar hasta que configures un horario de nuevo.`}
+          confirmLabel={vaciando ? "Un momento…" : "Sí, vaciar horario"}
+          onConfirm={handleVaciar}
+          onCancel={() => setConfirmandoVaciar(false)}
         />
       )}
     </section>

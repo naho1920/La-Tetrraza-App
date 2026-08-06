@@ -34,8 +34,9 @@ export async function listTemplates(): Promise<ClassTemplate[]> {
     .sort((a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora));
 }
 
-export async function createTemplate(data: Omit<ClassTemplate, "id">) {
-  await addDoc(collection(db, "classTemplates"), data);
+export async function createTemplate(data: Omit<ClassTemplate, "id">): Promise<ClassTemplate> {
+  const ref = await addDoc(collection(db, "classTemplates"), data);
+  return { id: ref.id, ...data };
 }
 
 export async function updateTemplate(id: string, data: Partial<Omit<ClassTemplate, "id">>) {
@@ -47,11 +48,24 @@ export async function deleteTemplate(id: string) {
 }
 
 /** Crea varias plantillas de una vez (configuración rápida del horario semanal). */
-export async function createTemplatesBulk(items: Omit<ClassTemplate, "id">[]) {
+export async function createTemplatesBulk(
+  items: Omit<ClassTemplate, "id">[]
+): Promise<ClassTemplate[]> {
   const batch = writeBatch(db);
-  for (const item of items) {
-    batch.set(doc(collection(db, "classTemplates")), item);
-  }
+  const refs = items.map((item) => {
+    const ref = doc(collection(db, "classTemplates"));
+    batch.set(ref, item);
+    return ref;
+  });
+  await batch.commit();
+  return items.map((item, i) => ({ id: refs[i].id, ...item }));
+}
+
+/** Borra TODAS las plantillas del horario semanal, para empezar de cero. */
+export async function deleteAllTemplates(): Promise<void> {
+  const snap = await getDocs(collection(db, "classTemplates"));
+  const batch = writeBatch(db);
+  for (const d of snap.docs) batch.delete(d.ref);
   await batch.commit();
 }
 

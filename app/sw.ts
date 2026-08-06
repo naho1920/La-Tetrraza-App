@@ -29,6 +29,26 @@ const serwist = new Serwist({
       handler: new NetworkOnly(),
     },
 
+    // Firestore y Firebase Auth (`*.googleapis.com`, `apis.google.com`,
+    // `accounts.google.com`) NUNCA deben pasar por Cache Storage. Sin esta
+    // exclusión, la última regla de `defaultCache` (el catch-all para
+    // cualquier dominio externo) los envuelve en NetworkFirst con
+    // `networkTimeoutSeconds: 10` — pensado para un fetch normal de API, no
+    // para el canal "Listen" en tiempo real de Firestore, que legítimamente
+    // se queda esperando MÁS de 10s sin novedades (eso es justamente cómo
+    // funciona un long-poll saludable). El service worker le da por muerta
+    // esa conexión sana y la reintenta constantemente, degradando cada
+    // lectura y cada listener de la app — coherente con la lentitud general
+    // reportada en notificaciones, diario, etc. Ver TASK-056 arriba para el
+    // mismo patrón ya aplicado a Supabase Storage.
+    {
+      matcher: ({ url }: { url: URL }) =>
+        url.hostname.endsWith(".googleapis.com") ||
+        url.hostname === "apis.google.com" ||
+        url.hostname === "accounts.google.com",
+      handler: new NetworkOnly(),
+    },
+
     // El `defaultCache` de @serwist/next cachea las navegaciones (los payloads
     // RSC que pide el router de Next.js al cambiar de pestaña, y las páginas
     // HTML) con NetworkFirst pero SIN `networkTimeoutSeconds` — a diferencia
